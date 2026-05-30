@@ -1,7 +1,7 @@
 import { QRCodeSVG } from 'qrcode.react'
 import { REGION_LIST } from '../data/brainRegions.js'
 
-const APP_URL = import.meta.env.VITE_APP_URL || 'https://neuroexplora.vercel.app'
+const APP_URL = import.meta.env.VITE_APP_URL || 'https://neuro-explora-2vt08th89-german-lopezs-projects.vercel.app'
 
 export default function AboutView() {
   return (
