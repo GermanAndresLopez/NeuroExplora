@@ -1,5 +1,7 @@
 {
   "installCommand": "npm install --ignore-scripts",
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
   "headers": [
     {
       "source": "/models/(.*)",
@@ -25,6 +27,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/((?!models|targets|draco|assets).*)", "destination": "/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
