@@ -87,10 +87,10 @@ export default function ConfiguracionView() {
       <div style={{ padding: '16px 16px 80px' }}>
 
         {/* Header */}
-        <p style={{ fontSize: '0.4rem', color: 'var(--accent)', letterSpacing: '0.2em', marginBottom: '8px', opacity: 0.7 }}>
+        <p style={{ fontSize: '0.6rem', color: 'var(--accent)', letterSpacing: '0.2em', marginBottom: '8px', opacity: 0.7 }}>
           //SCN_03 &nbsp;&gt;&nbsp; CONFIGURACIÓN
         </p>
-        <h1 style={{ fontSize: '0.8rem', color: '#fff', letterSpacing: '0.1em', marginBottom: '20px' }}>
+        <h1 style={{ fontSize: '1rem', color: '#fff', letterSpacing: '0.1em', marginBottom: '20px' }}>
           SISTEMA
         </h1>
 
@@ -108,17 +108,17 @@ export default function ConfiguracionView() {
                      style={{ width: 36, height: 36, borderRadius: '50%', border: '1px solid var(--accent-border)' }} />
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '0.5rem', color: '#fff', letterSpacing: '0.08em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <p style={{ fontSize: '0.7rem', color: '#fff', letterSpacing: '0.08em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user.name}
                 </p>
-                <p style={{ fontSize: '0.35rem', color: 'var(--text-dim)', fontFamily: "'Courier New', monospace", marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: "'Courier New', monospace", marginTop: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user.email}
                 </p>
               </div>
               <button
                 onClick={signOut}
                 style={{
-                  fontSize: '0.4rem', color: '#ff5555',
+                  fontSize: '0.6rem', color: '#ff5555',
                   border: '1px solid rgba(255,85,85,0.4)',
                   padding: '6px 10px',
                   background: 'transparent', cursor: 'pointer',
@@ -131,7 +131,7 @@ export default function ConfiguracionView() {
             </div>
           ) : CLIENT_ID ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '8px 0' }}>
-              <p style={{ fontSize: '0.4rem', color: 'var(--text-dim)', textAlign: 'center', fontFamily: "'Courier New', monospace", lineHeight: 2 }}>
+              <p style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textAlign: 'center', fontFamily: "'Courier New', monospace", lineHeight: 2 }}>
                 Inicia sesión para guardar tu progreso y aparecer en la clasificación
               </p>
               <div id="google-btn" />
@@ -142,7 +142,7 @@ export default function ConfiguracionView() {
               background: 'rgba(229,108,120,0.06)',
               border: '1px solid var(--accent-border)',
             }}>
-              <p style={{ fontSize: '0.38rem', color: 'var(--accent)', lineHeight: 2, fontFamily: "'Courier New', monospace" }}>
+              <p style={{ fontSize: '0.55rem', color: 'var(--accent)', lineHeight: 2, fontFamily: "'Courier New', monospace" }}>
                 Para activar login Google, agrega{' '}
                 <code style={{ background: 'rgba(229,108,120,0.15)', padding: '1px 4px', fontFamily: "'Courier New', monospace" }}>
                   VITE_GOOGLE_CLIENT_ID
@@ -185,7 +185,7 @@ export default function ConfiguracionView() {
         {/* ── Puntuaciones ── */}
         <Section label="MIS PUNTUACIONES">
           {scores.length === 0 ? (
-            <p style={{ fontSize: '0.38rem', color: 'var(--text-dim)', textAlign: 'center', padding: '16px 0', fontFamily: "'Courier New', monospace", lineHeight: 2 }}>
+            <p style={{ fontSize: '0.55rem', color: 'var(--text-dim)', textAlign: 'center', padding: '16px 0', fontFamily: "'Courier New', monospace", lineHeight: 2 }}>
               Sin puntuaciones guardadas.<br />
               <span style={{ color: 'rgba(229,108,120,0.4)' }}>Juega una partida para ver tu historial.</span>
             </p>
@@ -197,7 +197,7 @@ export default function ConfiguracionView() {
                 onClick={clearScores}
                 style={{
                   marginTop: '10px',
-                  fontSize: '0.38rem', color: 'rgba(255,85,85,0.6)',
+                  fontSize: '0.55rem', color: 'rgba(255,85,85,0.6)',
                   background: 'transparent', border: 'none', cursor: 'pointer',
                   fontFamily: "'Press Start 2P', monospace",
                   letterSpacing: '0.05em',
@@ -211,12 +211,12 @@ export default function ConfiguracionView() {
 
         {/* ── Acerca ── */}
         <Section label="ACERCA DE">
-          <p style={{ fontSize: '0.38rem', color: 'var(--text-dim)', lineHeight: 2.2, fontFamily: "'Courier New', monospace" }}>
+          <p style={{ fontSize: '0.55rem', color: 'var(--text-dim)', lineHeight: 2.2, fontFamily: "'Courier New', monospace" }}>
             Aplicación educativa de realidad aumentada sobre el cerebro humano.
             Desarrollada con React, Three.js y OrbitControls.
             Contenido basado en neurociencia clínica.
           </p>
-          <p style={{ fontSize: '0.38rem', color: 'rgba(229,108,120,0.35)', marginTop: '6px', fontFamily: "'Courier New', monospace" }}>
+          <p style={{ fontSize: '0.55rem', color: 'rgba(229,108,120,0.35)', marginTop: '6px', fontFamily: "'Courier New', monospace" }}>
             BUILD_v1.0.0 — 2024
           </p>
         </Section>
@@ -230,8 +230,8 @@ function Section({ label, children }) {
   return (
     <div style={{ marginBottom: '24px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-        <span style={{ fontSize: '0.35rem', color: 'var(--accent)', letterSpacing: '0.2em' }}>//</span>
-        <span style={{ fontSize: '0.45rem', color: 'var(--accent)', letterSpacing: '0.15em' }}>{label}</span>
+        <span style={{ fontSize: '0.7rem', color: 'var(--accent)', letterSpacing: '0.2em' }}>//</span>
+        <span style={{ fontSize: '0.65rem', color: 'var(--accent)', letterSpacing: '0.15em' }}>{label}</span>
         <div style={{ flex: 1, height: '1px', background: 'var(--accent-border)' }} />
       </div>
       {children}
@@ -251,22 +251,22 @@ function PermRow({ label, desc, state, onRequest }) {
       border: '1px solid rgba(229,108,120,0.15)',
     }}>
       <div>
-        <p style={{ fontSize: '0.45rem', color: '#fff', letterSpacing: '0.08em' }}>{label}</p>
-        <p style={{ fontSize: '0.35rem', color: 'var(--text-dim)', marginTop: '3px', fontFamily: "'Courier New', monospace" }}>{desc}</p>
+        <p style={{ fontSize: '0.65rem', color: '#fff', letterSpacing: '0.08em' }}>{label}</p>
+        <p style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '3px', fontFamily: "'Courier New', monospace" }}>{desc}</p>
       </div>
       {granted ? (
-        <span style={{ fontSize: '0.35rem', padding: '4px 8px', background: 'rgba(80,227,176,0.1)', color: '#50e3b0', border: '1px solid rgba(80,227,176,0.3)', letterSpacing: '0.1em' }}>
+        <span style={{ fontSize: '0.7rem', padding: '4px 8px', background: 'rgba(80,227,176,0.1)', color: '#50e3b0', border: '1px solid rgba(80,227,176,0.3)', letterSpacing: '0.1em' }}>
           OK
         </span>
       ) : denied ? (
-        <span style={{ fontSize: '0.35rem', padding: '4px 8px', background: 'rgba(255,85,85,0.1)', color: '#ff5555', border: '1px solid rgba(255,85,85,0.3)', letterSpacing: '0.1em' }}>
+        <span style={{ fontSize: '0.7rem', padding: '4px 8px', background: 'rgba(255,85,85,0.1)', color: '#ff5555', border: '1px solid rgba(255,85,85,0.3)', letterSpacing: '0.1em' }}>
           DENEGADO
         </span>
       ) : (
         <button
           onClick={onRequest}
           style={{
-            fontSize: '0.35rem', padding: '5px 10px',
+            fontSize: '0.7rem', padding: '5px 10px',
             background: 'var(--accent-dim)', color: 'var(--accent)',
             border: '1px solid var(--accent-border)', cursor: 'pointer',
             fontFamily: "'Press Start 2P', monospace",
@@ -284,7 +284,7 @@ function ScoreTable({ title, rows }) {
   if (!rows.length) return null
   return (
     <div style={{ marginBottom: '12px' }}>
-      <p style={{ fontSize: '0.38rem', color: 'var(--text-dim)', letterSpacing: '0.1em', marginBottom: '6px' }}>{title}</p>
+      <p style={{ fontSize: '0.55rem', color: 'var(--text-dim)', letterSpacing: '0.1em', marginBottom: '6px' }}>{title}</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {rows.slice(0, 5).map((s, i) => (
           <div key={i} style={{
@@ -294,11 +294,11 @@ function ScoreTable({ title, rows }) {
             border: '1px solid rgba(229,108,120,0.1)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.35rem', color: 'var(--accent)', width: '12px', fontFamily: "'Courier New', monospace" }}>{i + 1}.</span>
-              <span style={{ fontSize: '0.38rem', color: 'var(--text-dim)', fontFamily: "'Courier New', monospace" }}>{s.user}</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--accent)', width: '12px', fontFamily: "'Courier New', monospace" }}>{i + 1}.</span>
+              <span style={{ fontSize: '0.55rem', color: 'var(--text-dim)', fontFamily: "'Courier New', monospace" }}>{s.user}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '0.45rem', color: 'var(--accent)', fontFamily: "'Courier New', monospace", fontWeight: 'bold' }}>
+              <span style={{ fontSize: '0.65rem', color: 'var(--accent)', fontFamily: "'Courier New', monospace", fontWeight: 'bold' }}>
                 {s.score}
               </span>
               <span style={{ fontSize: '0.32rem', color: 'rgba(229,108,120,0.3)', fontFamily: "'Courier New', monospace" }}>

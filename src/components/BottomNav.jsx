@@ -1,3 +1,5 @@
+import { playClick } from '../hooks/useSound.js'
+
 export default function BottomNav({ currentView, onChange }) {
   const tabs = [
     { id: 'inicio',  label: 'INICIO',  icon: HomeIcon },
@@ -28,7 +30,7 @@ export default function BottomNav({ currentView, onChange }) {
           return (
             <button
               key={id}
-              onClick={() => onChange(id)}
+              onClick={() => { playClick(); onChange(id) }}
               style={{
                 flex: 1,
                 display: 'flex',
@@ -69,8 +71,8 @@ export default function BottomNav({ currentView, onChange }) {
                 }}
               />
               <span style={{
-                fontSize: '0.35rem',
-                letterSpacing: '0.15em',
+                fontSize: '0.5rem',
+                letterSpacing: '0.12em',
                 fontFamily: "'Press Start 2P', monospace",
               }}>
                 {label}

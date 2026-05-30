@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { playClick, playSelect, playSuccess } from '../../hooks/useSound.js'
 
 const QUESTIONS = [
   {
@@ -55,15 +56,18 @@ export default function QuizGame({ onScore }) {
   function handleAnswer(optionIndex) {
     if (phase !== 'question') return
     const correct = optionIndex === QUESTIONS[questionIndex].correct
+    correct ? playSelect() : playClick()
     setSelected(optionIndex)
     setAnswers(prev => [...prev, correct])
     setPhase('feedback')
   }
 
   function nextQuestion() {
+    playClick()
     if (questionIndex + 1 >= QUESTIONS.length) {
       setPhase('results')
       const finalAnswers = [...answers]
+      playSuccess()
       onScore?.('quiz', finalAnswers.filter(Boolean).length)
     } else {
       setQuestionIndex(i => i + 1)
@@ -78,8 +82,8 @@ export default function QuizGame({ onScore }) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '24px', gap: '24px' }}>
         <div style={{ textAlign: 'center' }}>
-          <h2 style={{ fontSize: '0.75rem', color: '#fff', letterSpacing: '0.1em', marginBottom: '12px' }}>QUIZ</h2>
-          <p style={{ fontSize: '0.45rem', color: 'var(--text-dim)', lineHeight: 2, fontFamily: "'Courier New', monospace" }}>
+          <h2 style={{ fontSize: '0.9rem', color: '#fff', letterSpacing: '0.1em', marginBottom: '12px' }}>QUIZ</h2>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)', lineHeight: 2, fontFamily: "'Courier New', monospace" }}>
             6 preguntas sobre las funciones del cerebro.<br />Pon a prueba lo que aprendiste.
           </p>
         </div>
@@ -92,7 +96,7 @@ export default function QuizGame({ onScore }) {
           className="pixel-btn"
           style={{
             width: '100%', maxWidth: '260px',
-            padding: '14px', fontSize: '0.65rem',
+            padding: '14px', fontSize: '0.78rem',
             background: 'var(--accent)', color: '#050508',
             border: '2px solid var(--accent)',
             boxShadow: '4px 4px 0 var(--accent-border)',
@@ -123,7 +127,7 @@ export default function QuizGame({ onScore }) {
           <p style={{ fontSize: '0.5rem', color: 'var(--accent)', letterSpacing: '0.15em', marginBottom: '6px' }}>
             // RESULTADO FINAL
           </p>
-          <p style={{ fontSize: '0.35rem', color: 'var(--text-dim)', fontFamily: "'Courier New', monospace", lineHeight: 1.8 }}>
+          <p style={{ fontSize: '0.5rem', color: 'var(--text-dim)', fontFamily: "'Courier New', monospace", lineHeight: 1.8 }}>
             {msg}
           </p>
         </div>
@@ -138,7 +142,7 @@ export default function QuizGame({ onScore }) {
           <div style={{ fontSize: '2rem', color: 'var(--accent)', fontFamily: "'Courier New', monospace" }}>
             {correctCount}/{QUESTIONS.length}
           </div>
-          <div style={{ fontSize: '0.4rem', color: 'var(--text-dim)', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '4px' }}>
             CORRECTAS ({pct}%)
           </div>
         </div>
@@ -148,7 +152,7 @@ export default function QuizGame({ onScore }) {
           className="pixel-btn"
           style={{
             width: '100%', maxWidth: '260px',
-            padding: '12px', fontSize: '0.6rem',
+            padding: '12px', fontSize: '0.72rem',
             background: 'var(--accent)', color: '#050508',
             border: '2px solid var(--accent)',
             boxShadow: '4px 4px 0 var(--accent-border)',
@@ -167,10 +171,10 @@ export default function QuizGame({ onScore }) {
       {/* Progress */}
       <div style={{ marginBottom: '12px', flexShrink: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-          <span style={{ fontSize: '0.4rem', color: 'var(--text-dim)' }}>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
             PREGUNTA {questionIndex + 1} / {QUESTIONS.length}
           </span>
-          <span style={{ fontSize: '0.4rem', color: 'var(--accent)' }}>
+          <span style={{ fontSize: '0.72rem', color: 'var(--accent)' }}>
             {correctCount} CORRECTAS
           </span>
         </div>
@@ -204,7 +208,7 @@ export default function QuizGame({ onScore }) {
           width: 8, height: 8,
           borderBottom: '1px solid var(--accent)', borderRight: '1px solid var(--accent)',
         }} />
-        <p style={{ fontSize: '0.45rem', color: '#fff', lineHeight: 2, fontFamily: "'Courier New', monospace" }}>
+        <p style={{ fontSize: '0.78rem', color: '#fff', lineHeight: 2, fontFamily: "'Courier New', monospace" }}>
           {q.question}
         </p>
       </div>
@@ -237,14 +241,14 @@ export default function QuizGame({ onScore }) {
                 background: bg,
                 color,
                 border: `1px solid ${borderColor}`,
-                fontSize: '0.4rem',
+                fontSize: '0.72rem',
                 fontFamily: "'Courier New', monospace",
                 lineHeight: 1.8,
                 cursor: phase === 'feedback' ? 'default' : 'pointer',
                 transition: 'all 0.2s',
               }}
             >
-              <span style={{ color: 'var(--accent)', marginRight: '8px', fontFamily: "'Press Start 2P', monospace", fontSize: '0.35rem' }}>
+              <span style={{ color: 'var(--accent)', marginRight: '8px', fontFamily: "'Press Start 2P', monospace", fontSize: '0.5rem' }}>
                 {String.fromCharCode(65 + i)}.
               </span>
               {option}
@@ -261,12 +265,12 @@ export default function QuizGame({ onScore }) {
           border: `1px solid ${answers[answers.length - 1] ? '#50e3b0' : '#ff5555'}`,
           background: answers[answers.length - 1] ? 'rgba(80,227,176,0.08)' : 'rgba(255,85,85,0.08)',
           color: answers[answers.length - 1] ? '#50e3b0' : '#ff5555',
-          fontSize: '0.38rem',
+          fontSize: '0.7rem',
           fontFamily: "'Courier New', monospace",
           lineHeight: 2,
           flexShrink: 0,
         }}>
-          <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '0.35rem', marginRight: '6px' }}>
+          <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '0.5rem', marginRight: '6px' }}>
             {answers[answers.length - 1] ? '> OK:' : '> ERR:'}
           </span>
           {q.explanation}
@@ -281,7 +285,7 @@ export default function QuizGame({ onScore }) {
             marginTop: '10px',
             width: '100%',
             padding: '11px',
-            fontSize: '0.55rem',
+            fontSize: '0.7rem',
             background: 'var(--accent)',
             color: '#050508',
             border: '2px solid var(--accent)',
@@ -307,8 +311,8 @@ function InfoCard({ icon, label, sub }) {
       <div style={{ fontSize: '1.2rem', marginBottom: '6px', fontFamily: "'Courier New', monospace", color: 'var(--accent)' }}>
         {icon}
       </div>
-      <div style={{ fontSize: '0.4rem', color: '#fff', letterSpacing: '0.08em' }}>{label}</div>
-      <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)', marginTop: '2px', fontFamily: "'Courier New', monospace" }}>{sub}</div>
+      <div style={{ fontSize: '0.72rem', color: '#fff', letterSpacing: '0.08em' }}>{label}</div>
+      <div style={{ fontSize: '0.5rem', color: 'var(--text-dim)', marginTop: '2px', fontFamily: "'Courier New', monospace" }}>{sub}</div>
     </div>
   )
 }

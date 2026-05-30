@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { REGION_LIST } from '../../data/brainRegions.js'
+import { playClick, playMatch, playMiss, playSuccess } from '../../hooks/useSound.js'
 
 const REGION_NAMES = REGION_LIST.map(r => r.name)
 
@@ -54,6 +55,7 @@ export default function MemoryGame({ onScore }) {
     const card = cards[index]
     if (card.isFlipped || card.isMatched) return
 
+    playClick()
     const newFlipped = [...flipped, index]
     setCards(prev => prev.map((c, i) => i === index ? { ...c, isFlipped: true } : c))
     setFlipped(newFlipped)
@@ -67,17 +69,20 @@ export default function MemoryGame({ onScore }) {
 
       setTimeout(() => {
         if (cardA.pairId === cardB.pairId) {
+          playMatch()
           setCards(prev => prev.map((c, i) => i === a || i === b ? { ...c, isMatched: true } : c))
           const newMatched = matchedCount + 1
           setMatchedCount(newMatched)
           if (newMatched === REGION_NAMES.length) {
             setPhase('won')
             const finalScore = Math.max(0, 600 - (attempts + 1) * 10 - Math.floor(elapsed / 5))
+            playSuccess()
             onScore?.('memory', finalScore)
           } else {
             setPhase('playing')
           }
         } else {
+          playMiss()
           setCards(prev => prev.map((c, i) => i === a || i === b ? { ...c, isFlipped: false } : c))
         }
         setFlipped([])
@@ -94,8 +99,8 @@ export default function MemoryGame({ onScore }) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '24px', gap: '24px' }}>
         <div style={{ textAlign: 'center' }}>
-          <h2 style={{ fontSize: '0.75rem', color: '#fff', letterSpacing: '0.1em', marginBottom: '12px' }}>MEMORY</h2>
-          <p style={{ fontSize: '0.45rem', color: 'var(--text-dim)', lineHeight: 2, fontFamily: "'Courier New', monospace" }}>
+          <h2 style={{ fontSize: '0.85rem', color: '#fff', letterSpacing: '0.1em', marginBottom: '12px' }}>MEMORY</h2>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', lineHeight: 2, fontFamily: "'Courier New', monospace" }}>
             Encuentra los 6 pares de regiones cerebrales.<br />Cuantos menos intentos, mayor tu puntaje.
           </p>
         </div>
@@ -109,7 +114,7 @@ export default function MemoryGame({ onScore }) {
           style={{
             width: '100%', maxWidth: '260px',
             padding: '14px',
-            fontSize: '0.65rem',
+            fontSize: '0.85rem',
             background: 'var(--accent)',
             color: '#050508',
             border: '2px solid var(--accent)',
@@ -131,7 +136,7 @@ export default function MemoryGame({ onScore }) {
             // COMPLETADO
           </p>
           <h2 style={{ fontSize: '0.8rem', color: '#fff', letterSpacing: '0.1em', marginBottom: '4px' }}>VICTORIA</h2>
-          <p style={{ fontSize: '0.4rem', color: 'var(--text-dim)', fontFamily: "'Courier New', monospace" }}>
+          <p style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontFamily: "'Courier New', monospace" }}>
             Todos los pares encontrados
           </p>
         </div>
@@ -168,13 +173,13 @@ export default function MemoryGame({ onScore }) {
         borderBottom: '1px solid var(--accent-border)',
         flexShrink: 0,
       }}>
-        <span style={{ fontSize: '0.4rem', color: 'var(--text-dim)' }}>
+        <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>
           INTENTOS: <span style={{ color: '#fff' }}>{attempts}</span>
         </span>
-        <span style={{ fontSize: '0.4rem', color: 'var(--text-dim)' }}>
+        <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>
           {matchedCount}/6 PARES
         </span>
-        <span style={{ fontSize: '0.4rem', color: 'var(--accent)', fontFamily: 'monospace' }}>
+        <span style={{ fontSize: '0.6rem', color: 'var(--accent)', fontFamily: 'monospace' }}>
           {formatTime(elapsed)}
         </span>
       </div>
@@ -193,7 +198,7 @@ export default function MemoryGame({ onScore }) {
               style={{
                 aspectRatio: '3/4',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '0.35rem',
+                fontSize: '0.5rem',
                 fontFamily: "'Courier New', monospace",
                 fontWeight: 'bold',
                 padding: '4px',
@@ -239,8 +244,8 @@ function InfoCard({ icon, label, sub }) {
       textAlign: 'center',
     }}>
       <div style={{ fontSize: '1.2rem', marginBottom: '6px' }}>{icon}</div>
-      <div style={{ fontSize: '0.4rem', color: '#fff', letterSpacing: '0.1em' }}>{label}</div>
-      <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)', marginTop: '2px', fontFamily: "'Courier New', monospace" }}>{sub}</div>
+      <div style={{ fontSize: '0.6rem', color: '#fff', letterSpacing: '0.1em' }}>{label}</div>
+      <div style={{ fontSize: '0.5rem', color: 'var(--text-dim)', marginTop: '2px', fontFamily: "'Courier New', monospace" }}>{sub}</div>
     </div>
   )
 }
@@ -256,7 +261,7 @@ function StatCard({ label, value, accent }) {
       <div style={{ fontSize: '0.7rem', color: accent ? 'var(--accent)' : '#fff', fontFamily: "'Courier New', monospace" }}>
         {value}
       </div>
-      <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)', marginTop: '4px', letterSpacing: '0.1em' }}>
+      <div style={{ fontSize: '0.5rem', color: 'var(--text-dim)', marginTop: '4px', letterSpacing: '0.1em' }}>
         {label}
       </div>
     </div>
