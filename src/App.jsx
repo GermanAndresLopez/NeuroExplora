@@ -17,12 +17,27 @@ export default function App() {
   }, [])
 
   return (
-    <div className="fixed inset-0 bg-gray-950 overflow-hidden" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      <div className="absolute inset-0 bottom-16 overflow-hidden">
-        {view === 'inicio' && <InicioView />}
-        {view === 'juegos' && <GamesView tab={gameTab} onTabChange={setGameTab} onScore={handleScore} />}
-        {view === 'config' && <ConfiguracionView />}
+    <div
+      className="fixed inset-0 overflow-hidden"
+      style={{
+        background: 'var(--bg)',
+        backgroundImage: `
+          linear-gradient(rgba(229,108,120,0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(229,108,120,0.025) 1px, transparent 1px)
+        `,
+        backgroundSize: '40px 40px',
+      }}
+    >
+      {/* Scanlines overlay */}
+      <div className="fixed inset-0 pointer-events-none z-[9990] scanlines" />
+
+      {/* Content area */}
+      <div className="absolute inset-0 bottom-14 overflow-hidden">
+        {view === 'inicio'  && <InicioView onNavigate={setView} />}
+        {view === 'juegos'  && <GamesView tab={gameTab} onTabChange={setGameTab} onScore={handleScore} />}
+        {view === 'config'  && <ConfiguracionView />}
       </div>
+
       <BottomNav currentView={view} onChange={setView} />
     </div>
   )

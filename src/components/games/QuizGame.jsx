@@ -40,10 +40,10 @@ const QUESTIONS = [
 ]
 
 export default function QuizGame({ onScore }) {
-  const [phase, setPhase] = useState('idle') // 'idle' | 'question' | 'feedback' | 'results'
+  const [phase, setPhase]               = useState('idle')
   const [questionIndex, setQuestionIndex] = useState(0)
-  const [selected, setSelected] = useState(null)
-  const [answers, setAnswers] = useState([]) // array of booleans
+  const [selected, setSelected]         = useState(null)
+  const [answers, setAnswers]           = useState([])
 
   function startGame() {
     setPhase('question')
@@ -63,7 +63,7 @@ export default function QuizGame({ onScore }) {
   function nextQuestion() {
     if (questionIndex + 1 >= QUESTIONS.length) {
       setPhase('results')
-      const finalAnswers = [...answers, correct]
+      const finalAnswers = [...answers]
       onScore?.('quiz', finalAnswers.filter(Boolean).length)
     } else {
       setQuestionIndex(i => i + 1)
@@ -76,70 +76,86 @@ export default function QuizGame({ onScore }) {
 
   if (phase === 'idle') {
     return (
-      <div className="flex flex-col items-center justify-center h-full px-6 gap-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">Quiz Cerebral</h2>
-          <p className="text-gray-400 text-sm leading-relaxed">
-            6 preguntas sobre las funciones de las regiones del cerebro. Pon a prueba lo que aprendiste.
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '24px', gap: '24px' }}>
+        <div style={{ textAlign: 'center' }}>
+          <h2 style={{ fontSize: '0.75rem', color: '#fff', letterSpacing: '0.1em', marginBottom: '12px' }}>QUIZ</h2>
+          <p style={{ fontSize: '0.45rem', color: 'var(--text-dim)', lineHeight: 2, fontFamily: "'Courier New', monospace" }}>
+            6 preguntas sobre las funciones del cerebro.<br />Pon a prueba lo que aprendiste.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
-          {[
-            { icon: '❓', label: '6 preguntas', sub: '1 por región' },
-            { icon: '4️⃣', label: '4 opciones', sub: 'respuesta única' },
-          ].map(item => (
-            <div key={item.label} className="bg-gray-800 rounded-xl p-3 text-center border border-gray-700">
-              <div className="text-2xl mb-1">{item.icon}</div>
-              <div className="text-white text-xs font-semibold">{item.label}</div>
-              <div className="text-gray-500 text-xs">{item.sub}</div>
-            </div>
-          ))}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%', maxWidth: '260px' }}>
+          <InfoCard icon="?" label="6 PREGUNTAS" sub="1 POR REGIÓN" />
+          <InfoCard icon="4" label="OPCIONES"    sub="ÚNICA RESP." />
         </div>
         <button
           onClick={startGame}
-          className="w-full max-w-xs py-3.5 bg-cyan-500 hover:bg-cyan-400 text-gray-950 font-bold rounded-xl transition-colors shadow-lg shadow-cyan-500/30"
+          className="pixel-btn"
+          style={{
+            width: '100%', maxWidth: '260px',
+            padding: '14px', fontSize: '0.65rem',
+            background: 'var(--accent)', color: '#050508',
+            border: '2px solid var(--accent)',
+            boxShadow: '4px 4px 0 var(--accent-border)',
+          }}
         >
-          Comenzar Quiz
+          &gt; COMENZAR QUIZ
         </button>
       </div>
     )
   }
 
   if (phase === 'results') {
-    const pct = Math.round((correctCount / QUESTIONS.length) * 100)
+    const pct   = Math.round((correctCount / QUESTIONS.length) * 100)
     const stars = correctCount >= 6 ? 3 : correctCount >= 4 ? 2 : 1
-    const message =
-      correctCount === 6 ? '¡Perfecto! Eres un experto en neurociencia.' :
-      correctCount >= 4 ? '¡Muy bien! Tienes buen conocimiento del cerebro.' :
-      '¡Sigue explorando! Usa la vista AR para aprender más.'
+    const msg   =
+      correctCount === 6 ? 'PERFECTO — EXPERTO EN NEUROCIENCIA' :
+      correctCount >= 4  ? 'MUY BIEN — BUEN CONOCIMIENTO' :
+                           'SIGUE EXPLORANDO — APRENDE MÁS'
 
     return (
-      <div className="flex flex-col items-center justify-center h-full px-6 gap-5">
-        <div className="text-center">
-          <div className="flex justify-center gap-1 mb-3">
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '24px', gap: '20px' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '1.5rem', marginBottom: '8px' }}>
             {Array.from({ length: 3 }, (_, i) => (
-              <span key={i} className={`text-3xl ${i < stars ? 'opacity-100' : 'opacity-20'}`}>⭐</span>
+              <span key={i} style={{ opacity: i < stars ? 1 : 0.15 }}>★</span>
             ))}
           </div>
-          <h2 className="text-2xl font-bold text-white mb-1">Resultado Final</h2>
-          <p className="text-gray-400 text-sm">{message}</p>
+          <p style={{ fontSize: '0.5rem', color: 'var(--accent)', letterSpacing: '0.15em', marginBottom: '6px' }}>
+            // RESULTADO FINAL
+          </p>
+          <p style={{ fontSize: '0.35rem', color: 'var(--text-dim)', fontFamily: "'Courier New', monospace", lineHeight: 1.8 }}>
+            {msg}
+          </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
-          <div className="bg-gray-800 rounded-xl p-4 text-center border border-gray-700 col-span-2">
-            <div className="text-4xl font-bold text-cyan-400 mb-1">{correctCount}/{QUESTIONS.length}</div>
-            <div className="text-gray-500 text-sm">respuestas correctas ({pct}%)</div>
+        <div style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--accent-border)',
+          padding: '16px 24px',
+          textAlign: 'center',
+          width: '100%', maxWidth: '260px',
+        }}>
+          <div style={{ fontSize: '2rem', color: 'var(--accent)', fontFamily: "'Courier New', monospace" }}>
+            {correctCount}/{QUESTIONS.length}
+          </div>
+          <div style={{ fontSize: '0.4rem', color: 'var(--text-dim)', marginTop: '4px' }}>
+            CORRECTAS ({pct}%)
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 w-full max-w-xs">
-          <button
-            onClick={startGame}
-            className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-gray-950 font-bold rounded-xl transition-colors"
-          >
-            Intentar de nuevo
-          </button>
-        </div>
+        <button
+          onClick={startGame}
+          className="pixel-btn"
+          style={{
+            width: '100%', maxWidth: '260px',
+            padding: '12px', fontSize: '0.6rem',
+            background: 'var(--accent)', color: '#050508',
+            border: '2px solid var(--accent)',
+            boxShadow: '4px 4px 0 var(--accent-border)',
+          }}
+        >
+          &gt; DE NUEVO
+        </button>
       </div>
     )
   }
@@ -147,37 +163,66 @@ export default function QuizGame({ onScore }) {
   const q = QUESTIONS[questionIndex]
 
   return (
-    <div className="flex flex-col h-full px-4 py-3">
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '12px 16px' }}>
       {/* Progress */}
-      <div className="mb-4 shrink-0">
-        <div className="flex justify-between text-xs text-gray-500 mb-1.5">
-          <span>Pregunta {questionIndex + 1} de {QUESTIONS.length}</span>
-          <span className="text-cyan-400">{answers.filter(Boolean).length} correctas</span>
+      <div style={{ marginBottom: '12px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+          <span style={{ fontSize: '0.4rem', color: 'var(--text-dim)' }}>
+            PREGUNTA {questionIndex + 1} / {QUESTIONS.length}
+          </span>
+          <span style={{ fontSize: '0.4rem', color: 'var(--accent)' }}>
+            {correctCount} CORRECTAS
+          </span>
         </div>
-        <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-cyan-500 rounded-full transition-all duration-500"
-            style={{ width: `${((questionIndex) / QUESTIONS.length) * 100}%` }}
-          />
+        <div style={{ height: '2px', background: 'var(--surface2)', overflow: 'hidden' }}>
+          <div style={{
+            height: '100%',
+            width: `${(questionIndex / QUESTIONS.length) * 100}%`,
+            background: 'var(--accent)',
+            transition: 'width 0.5s',
+            boxShadow: '0 0 6px var(--accent-glow)',
+          }} />
         </div>
       </div>
 
       {/* Question */}
-      <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-4 mb-4 shrink-0">
-        <p className="text-white font-medium text-sm leading-relaxed">{q.question}</p>
+      <div style={{
+        background: 'var(--surface)',
+        border: '1px solid var(--accent-border)',
+        padding: '12px',
+        marginBottom: '12px',
+        flexShrink: 0,
+        position: 'relative',
+      }}>
+        <span style={{
+          position: 'absolute', top: 0, left: 0,
+          width: 8, height: 8,
+          borderTop: '1px solid var(--accent)', borderLeft: '1px solid var(--accent)',
+        }} />
+        <span style={{
+          position: 'absolute', bottom: 0, right: 0,
+          width: 8, height: 8,
+          borderBottom: '1px solid var(--accent)', borderRight: '1px solid var(--accent)',
+        }} />
+        <p style={{ fontSize: '0.45rem', color: '#fff', lineHeight: 2, fontFamily: "'Courier New', monospace" }}>
+          {q.question}
+        </p>
       </div>
 
       {/* Options */}
-      <div className="flex flex-col gap-2.5 flex-1">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
         {q.options.map((option, i) => {
-          let style = 'bg-gray-800 border-gray-700 text-gray-300 hover:border-cyan-500/50 hover:bg-gray-750'
+          let bg = 'var(--surface)'
+          let color = 'var(--text-dim)'
+          let borderColor = 'rgba(229,108,120,0.15)'
+
           if (phase === 'feedback' && selected !== null) {
             if (i === q.correct) {
-              style = 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
-            } else if (i === selected && i !== q.correct) {
-              style = 'bg-red-500/20 border-red-500 text-red-300'
+              bg = 'rgba(80,227,176,0.1)'; color = '#50e3b0'; borderColor = '#50e3b0'
+            } else if (i === selected) {
+              bg = 'rgba(255,85,85,0.1)'; color = '#ff5555'; borderColor = '#ff5555'
             } else {
-              style = 'bg-gray-800/50 border-gray-700/50 text-gray-500'
+              bg = 'var(--surface)'; color = 'var(--text-dim)'; borderColor = 'rgba(255,255,255,0.05)'
             }
           }
 
@@ -186,9 +231,22 @@ export default function QuizGame({ onScore }) {
               key={i}
               onClick={() => handleAnswer(i)}
               disabled={phase === 'feedback'}
-              className={`w-full text-left px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-200 ${style}`}
+              style={{
+                textAlign: 'left',
+                padding: '10px 12px',
+                background: bg,
+                color,
+                border: `1px solid ${borderColor}`,
+                fontSize: '0.4rem',
+                fontFamily: "'Courier New', monospace",
+                lineHeight: 1.8,
+                cursor: phase === 'feedback' ? 'default' : 'pointer',
+                transition: 'all 0.2s',
+              }}
             >
-              <span className="text-xs font-bold mr-2 opacity-60">{String.fromCharCode(65 + i)}.</span>
+              <span style={{ color: 'var(--accent)', marginRight: '8px', fontFamily: "'Press Start 2P', monospace", fontSize: '0.35rem' }}>
+                {String.fromCharCode(65 + i)}.
+              </span>
               {option}
             </button>
           )
@@ -197,14 +255,19 @@ export default function QuizGame({ onScore }) {
 
       {/* Feedback */}
       {phase === 'feedback' && (
-        <div className={`mt-3 p-3 rounded-xl border text-xs leading-relaxed shrink-0
-          ${answers[answers.length - 1]
-            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-            : 'bg-red-500/10 border-red-500/30 text-red-300'
-          }`}
-        >
-          <span className="font-semibold mr-1">
-            {answers[answers.length - 1] ? '¡Correcto!' : 'Incorrecto.'}
+        <div style={{
+          marginTop: '10px',
+          padding: '10px 12px',
+          border: `1px solid ${answers[answers.length - 1] ? '#50e3b0' : '#ff5555'}`,
+          background: answers[answers.length - 1] ? 'rgba(80,227,176,0.08)' : 'rgba(255,85,85,0.08)',
+          color: answers[answers.length - 1] ? '#50e3b0' : '#ff5555',
+          fontSize: '0.38rem',
+          fontFamily: "'Courier New', monospace",
+          lineHeight: 2,
+          flexShrink: 0,
+        }}>
+          <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: '0.35rem', marginRight: '6px' }}>
+            {answers[answers.length - 1] ? '> OK:' : '> ERR:'}
           </span>
           {q.explanation}
         </div>
@@ -213,11 +276,39 @@ export default function QuizGame({ onScore }) {
       {phase === 'feedback' && (
         <button
           onClick={nextQuestion}
-          className="mt-3 w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-gray-950 font-bold rounded-xl transition-colors shrink-0"
+          className="pixel-btn"
+          style={{
+            marginTop: '10px',
+            width: '100%',
+            padding: '11px',
+            fontSize: '0.55rem',
+            background: 'var(--accent)',
+            color: '#050508',
+            border: '2px solid var(--accent)',
+            boxShadow: '3px 3px 0 var(--accent-border)',
+            flexShrink: 0,
+          }}
         >
-          {questionIndex + 1 >= QUESTIONS.length ? 'Ver resultados' : 'Siguiente pregunta'}
+          {questionIndex + 1 >= QUESTIONS.length ? '> VER RESULTADOS' : '> SIGUIENTE'}
         </button>
       )}
+    </div>
+  )
+}
+
+function InfoCard({ icon, label, sub }) {
+  return (
+    <div style={{
+      background: 'var(--surface)',
+      border: '1px solid var(--accent-border)',
+      padding: '12px 8px',
+      textAlign: 'center',
+    }}>
+      <div style={{ fontSize: '1.2rem', marginBottom: '6px', fontFamily: "'Courier New', monospace", color: 'var(--accent)' }}>
+        {icon}
+      </div>
+      <div style={{ fontSize: '0.4rem', color: '#fff', letterSpacing: '0.08em' }}>{label}</div>
+      <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)', marginTop: '2px', fontFamily: "'Courier New', monospace" }}>{sub}</div>
     </div>
   )
 }

@@ -1,6 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 @import "tailwindcss";
 
-/* Base resets */
+:root {
+  --accent: #e56c78;
+  --accent-dim: rgba(229, 108, 120, 0.12);
+  --accent-border: rgba(229, 108, 120, 0.35);
+  --accent-glow: rgba(229, 108, 120, 0.5);
+  --bg: #050508;
+  --surface: #0d0d14;
+  --surface2: #13131e;
+  --text: #e8e8f0;
+  --text-dim: #666680;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -11,42 +23,92 @@ html, body, #root {
   overflow: hidden;
   margin: 0;
   padding: 0;
-  background: #0a0e1a;
-  color: #f9fafb;
+  background: var(--bg);
+  color: var(--text);
 }
 
-/* Prevent tap highlight on mobile */
-* {
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Hide Mind AR's built-in UI overlays (we replace them with our own) */
-.mindar-ui-overlay,
-.mindar-ui-loading,
-.mindar-ui-scanning,
-.mindar-ui-error {
-  display: none !important;
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 3px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 2px;
-}
-
-/* Smooth font rendering */
 body {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Line clamp utility */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Pixel button — octagonal cut corners */
+.pixel-btn {
+  clip-path: polygon(
+    8px 0, calc(100% - 8px) 0,
+    100% 8px, 100% calc(100% - 8px),
+    calc(100% - 8px) 100%, 8px 100%,
+    0 calc(100% - 8px), 0 8px
+  );
+  font-family: 'Press Start 2P', monospace;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s;
+  letter-spacing: 0.08em;
+}
+.pixel-btn:hover  { filter: brightness(1.2); }
+.pixel-btn:active { transform: scale(0.97); filter: brightness(0.9); }
+
+/* Cyber corner brackets */
+.cyber-box {
+  position: relative;
+}
+.cyber-box::before,
+.cyber-box::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: var(--accent);
+  border-style: solid;
+  opacity: 0.7;
+}
+.cyber-box::before {
+  top: 0; left: 0;
+  border-width: 2px 0 0 2px;
+}
+.cyber-box::after {
+  bottom: 0; right: 0;
+  border-width: 0 2px 2px 0;
+}
+
+/* Glitch text animation */
+@keyframes glitch {
+  0%   { text-shadow: 2px 0 var(--accent), -2px 0 #4ecdc4; clip-path: inset(0 0 95% 0); }
+  5%   { text-shadow: -2px 0 var(--accent), 2px 0 #4ecdc4; clip-path: inset(40% 0 50% 0); }
+  10%  { text-shadow: 2px 0 var(--accent); clip-path: inset(60% 0 20% 0); }
+  15%, 100% { text-shadow: none; clip-path: none; }
+}
+.glitch-text {
+  animation: glitch 4s infinite;
+}
+
+/* Scanlines */
+.scanlines {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.06) 2px,
+    rgba(0, 0, 0, 0.06) 4px
+  );
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--accent-border); }
+
+/* MindAR cleanup */
+.mindar-ui-overlay,
+.mindar-ui-loading,
+.mindar-ui-scanning,
+.mindar-ui-error { display: none !important; }
+
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;

@@ -5,53 +5,106 @@ const ARScene = lazy(() => import('../components/ARScene.jsx'))
 const APP_URL = import.meta.env.VITE_APP_URL || 'https://neuro-explora-2vt08th89-german-lopezs-projects.vercel.app'
 const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 
-export default function InicioView() {
+export default function InicioView({ onNavigate }) {
   const [exploring, setExploring] = useState(false)
 
   return (
     <div className="absolute inset-0">
-      {/* Brain viewer — always loaded in background */}
-      <Suspense fallback={<div className="absolute inset-0 bg-gray-950" />}>
+      {/* Brain in background */}
+      <Suspense fallback={<div className="absolute inset-0" style={{ background: 'var(--bg)' }} />}>
         <ARScene />
       </Suspense>
 
-      {/* Welcome overlay */}
+      {/* Game menu overlay */}
       {!exploring && (
-        <div className="absolute inset-0 z-30 bg-gray-950/88 backdrop-blur-sm flex flex-col items-center justify-between px-6 py-10">
+        <div
+          className="absolute inset-0 z-30 flex flex-col items-center justify-between py-8 px-5"
+          style={{ background: 'rgba(5,5,8,0.86)' }}
+        >
+          {/* ── HEADER ─────────────────────────────────────── */}
+          <div className="w-full text-center">
+            <p style={{ fontSize: '0.5rem', color: 'var(--accent)', letterSpacing: '0.2em', opacity: 0.8 }}>
+              //SCN_01 &nbsp;&gt;&nbsp; SISTEMA LISTO
+            </p>
 
-          {/* Header */}
-          <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center">
-              <BrainSvg />
+            <div style={{ position: 'relative', display: 'inline-block', marginTop: '1rem' }}>
+              {/* Corner brackets */}
+              <span style={{
+                position: 'absolute', top: -6, left: -10,
+                width: 14, height: 14,
+                borderTop: '2px solid var(--accent)',
+                borderLeft: '2px solid var(--accent)',
+                opacity: 0.8,
+              }} />
+              <span style={{
+                position: 'absolute', bottom: -6, right: -10,
+                width: 14, height: 14,
+                borderBottom: '2px solid var(--accent)',
+                borderRight: '2px solid var(--accent)',
+                opacity: 0.8,
+              }} />
+
+              <h1
+                className="glitch-text"
+                style={{
+                  fontSize: 'clamp(0.9rem, 5vw, 1.3rem)',
+                  color: '#fff',
+                  letterSpacing: '0.12em',
+                  lineHeight: 1.4,
+                  padding: '0 8px',
+                }}
+              >
+                NEURO<br />EXPLORA
+              </h1>
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">NeuroExplora</h1>
-            <p className="text-gray-400 text-sm mt-1 leading-relaxed max-w-xs mx-auto">
-              Explora el cerebro humano en 3D e interactúa con sus regiones
+
+            <p style={{ fontSize: '0.45rem', color: 'var(--text-dim)', letterSpacing: '0.25em', marginTop: '0.6rem' }}>
+              CEREBRO HUMANO &mdash; v1.0.0
             </p>
           </div>
 
-          {/* CTA buttons */}
-          <div className="flex flex-col gap-3 w-full max-w-xs">
-            <button
+          {/* ── MENU BUTTONS ────────────────────────────────── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '280px' }}>
+            <MenuButton
+              primary
               onClick={() => setExploring(true)}
-              className="w-full py-3.5 rounded-2xl bg-cyan-500 text-gray-950 font-bold text-base active:scale-95 transition-transform shadow-lg shadow-cyan-500/25"
-            >
-              {IS_MOBILE ? '🔍  Explorar el cerebro' : '🔍  Comenzar exploración'}
-            </button>
-            {IS_MOBILE && (
-              <p className="text-gray-500 text-xs text-center leading-relaxed">
-                Una vez dentro, usa el botón <span className="text-cyan-500 font-semibold">AR</span> para proyectar el cerebro con la cámara
-              </p>
-            )}
+              label={IS_MOBILE ? '> EXPLORAR' : '> EXPLORAR'}
+            />
+            <MenuButton
+              onClick={() => onNavigate('juegos')}
+              label="> JUEGOS"
+            />
+            <MenuButton
+              onClick={() => onNavigate('config')}
+              label="> CONFIGURAR"
+            />
           </div>
 
-          {/* QR code */}
-          <div className="text-center">
-            <p className="text-gray-500 text-xs mb-3 uppercase tracking-wider">Escanea para abrir en móvil</p>
-            <div className="p-3 bg-white rounded-2xl inline-block shadow-lg">
-              <QRCodeSVG value={APP_URL} size={120} bgColor="#ffffff" fgColor="#0a0e1a" level="M" />
-            </div>
-            <p className="text-gray-600 text-xs mt-2 font-mono break-all max-w-xs">{APP_URL}</p>
+          {/* ── FOOTER ─────────────────────────────────────── */}
+          <div className="text-center" style={{ width: '100%' }}>
+            {!IS_MOBILE && (
+              <div style={{ marginBottom: '0.75rem' }}>
+                <p style={{ fontSize: '0.4rem', color: 'var(--text-dim)', letterSpacing: '0.2em', marginBottom: '0.5rem' }}>
+                  ESCANEAR PARA MÓVIL
+                </p>
+                <div style={{
+                  display: 'inline-block',
+                  padding: '6px',
+                  background: '#fff',
+                  clipPath: 'polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px)',
+                }}>
+                  <QRCodeSVG value={APP_URL} size={80} bgColor="#ffffff" fgColor="#050508" level="M" />
+                </div>
+              </div>
+            )}
+            <p style={{
+              fontSize: '0.4rem',
+              color: 'rgba(229,108,120,0.4)',
+              letterSpacing: '0.15em',
+              fontFamily: "'Courier New', monospace",
+            }}>
+              X_12.847 &nbsp; Y_-35.291 &nbsp; Z_0.000
+            </p>
           </div>
         </div>
       )}
@@ -59,12 +112,30 @@ export default function InicioView() {
   )
 }
 
-function BrainSvg() {
+function MenuButton({ onClick, label, primary }) {
+  const [hovered, setHovered] = useState(false)
+
   return (
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="1.6">
-      <path d="M9.5 2C8 2 6.5 2.9 5.8 4.3C5.1 3.5 4.1 3 3 3C1.3 3 0 4.3 0 6C0 6.7 0.3 7.4 0.7 7.9C0.3 8.4 0 9.2 0 10C0 11.6 1.1 12.9 2.5 13.3C2.5 13.5 2.5 13.8 2.5 14C2.5 16.2 4.3 18 6.5 18H8"/>
-      <path d="M14.5 2C16 2 17.5 2.9 18.2 4.3C18.9 3.5 19.9 3 21 3C22.7 3 24 4.3 24 6C24 6.7 23.7 7.4 23.3 7.9C23.7 8.4 24 9.2 24 10C24 11.6 22.9 12.9 21.5 13.3C21.5 13.5 21.5 13.8 21.5 14C21.5 16.2 19.7 18 17.5 18H16"/>
-      <path d="M8 18V22M16 18V22M8 22H16M12 2V18"/>
-    </svg>
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="pixel-btn"
+      style={{
+        width: '100%',
+        padding: '14px 20px',
+        fontSize: '0.65rem',
+        background: primary
+          ? (hovered ? '#f07d88' : 'var(--accent)')
+          : (hovered ? 'var(--accent-dim)' : 'transparent'),
+        color: primary ? '#050508' : (hovered ? '#fff' : 'var(--accent)'),
+        border: `2px solid ${hovered ? '#f07d88' : 'var(--accent)'}`,
+        boxShadow: hovered
+          ? '0 0 14px var(--accent-glow), 4px 4px 0 var(--accent-border)'
+          : '4px 4px 0 var(--accent-border)',
+      }}
+    >
+      {label}
+    </button>
   )
 }

@@ -27,6 +27,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!models|targets|draco|assets).*)", "destination": "/index.html" }
   ]
 }

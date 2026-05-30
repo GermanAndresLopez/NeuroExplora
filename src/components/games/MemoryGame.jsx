@@ -17,23 +17,18 @@ function generateCards() {
     { pairId: name, label: name },
     { pairId: name, label: name },
   ])
-  return shuffle(pairs).map((card, i) => ({
-    ...card,
-    id: i,
-    isFlipped: false,
-    isMatched: false,
-  }))
+  return shuffle(pairs).map((card, i) => ({ ...card, id: i, isFlipped: false, isMatched: false }))
 }
 
 export default function MemoryGame({ onScore }) {
-  const [phase, setPhase] = useState('idle') // 'idle' | 'playing' | 'checking' | 'won'
-  const [cards, setCards] = useState([])
-  const [flipped, setFlipped] = useState([])
-  const [attempts, setAttempts] = useState(0)
+  const [phase, setPhase]             = useState('idle')
+  const [cards, setCards]             = useState([])
+  const [flipped, setFlipped]         = useState([])
+  const [attempts, setAttempts]       = useState(0)
   const [matchedCount, setMatchedCount] = useState(0)
-  const [elapsed, setElapsed] = useState(0)
-  const timerRef = useRef(null)
-  const checkingRef = useRef(false)
+  const [elapsed, setElapsed]         = useState(0)
+  const timerRef                      = useRef(null)
+  const checkingRef                   = useRef(false)
 
   const startGame = useCallback(() => {
     setCards(generateCards())
@@ -45,7 +40,6 @@ export default function MemoryGame({ onScore }) {
     checkingRef.current = false
   }, [])
 
-  // Timer
   useEffect(() => {
     if (phase === 'playing') {
       timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000)
@@ -56,8 +50,7 @@ export default function MemoryGame({ onScore }) {
   }, [phase])
 
   function handleCardClick(index) {
-    if (phase !== 'playing') return
-    if (checkingRef.current) return
+    if (phase !== 'playing' || checkingRef.current) return
     const card = cards[index]
     if (card.isFlipped || card.isMatched) return
 
@@ -74,9 +67,7 @@ export default function MemoryGame({ onScore }) {
 
       setTimeout(() => {
         if (cardA.pairId === cardB.pairId) {
-          setCards(prev => prev.map((c, i) =>
-            i === a || i === b ? { ...c, isMatched: true } : c
-          ))
+          setCards(prev => prev.map((c, i) => i === a || i === b ? { ...c, isMatched: true } : c))
           const newMatched = matchedCount + 1
           setMatchedCount(newMatched)
           if (newMatched === REGION_NAMES.length) {
@@ -87,9 +78,7 @@ export default function MemoryGame({ onScore }) {
             setPhase('playing')
           }
         } else {
-          setCards(prev => prev.map((c, i) =>
-            i === a || i === b ? { ...c, isFlipped: false } : c
-          ))
+          setCards(prev => prev.map((c, i) => i === a || i === b ? { ...c, isFlipped: false } : c))
         }
         setFlipped([])
         checkingRef.current = false
@@ -98,36 +87,37 @@ export default function MemoryGame({ onScore }) {
     }
   }
 
-  const formatTime = (s) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+  const formatTime = s => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
   const score = Math.max(0, 600 - attempts * 10 - Math.floor(elapsed / 5))
 
   if (phase === 'idle') {
     return (
-      <div className="flex flex-col items-center justify-center h-full px-6 gap-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">Memory Cerebral</h2>
-          <p className="text-gray-400 text-sm leading-relaxed">
-            Encuentra los 6 pares de regiones cerebrales. Cuantos menos intentos,
-            mayor tu puntaje.
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '24px', gap: '24px' }}>
+        <div style={{ textAlign: 'center' }}>
+          <h2 style={{ fontSize: '0.75rem', color: '#fff', letterSpacing: '0.1em', marginBottom: '12px' }}>MEMORY</h2>
+          <p style={{ fontSize: '0.45rem', color: 'var(--text-dim)', lineHeight: 2, fontFamily: "'Courier New', monospace" }}>
+            Encuentra los 6 pares de regiones cerebrales.<br />Cuantos menos intentos, mayor tu puntaje.
           </p>
         </div>
-        <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
-          {[
-            { icon: '🎯', label: '12 fichas', sub: '6 pares' },
-            { icon: '⏱', label: 'Contra reloj', sub: 'cronómetro' },
-          ].map(item => (
-            <div key={item.label} className="bg-gray-800 rounded-xl p-3 text-center border border-gray-700">
-              <div className="text-2xl mb-1">{item.icon}</div>
-              <div className="text-white text-xs font-semibold">{item.label}</div>
-              <div className="text-gray-500 text-xs">{item.sub}</div>
-            </div>
-          ))}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%', maxWidth: '260px' }}>
+          <InfoCard icon="12" label="FICHAS" sub="6 PARES" />
+          <InfoCard icon="⏱" label="RELOJ" sub="CRONÓMETRO" />
         </div>
         <button
           onClick={startGame}
-          className="w-full max-w-xs py-3.5 bg-cyan-500 hover:bg-cyan-400 text-gray-950 font-bold rounded-xl transition-colors shadow-lg shadow-cyan-500/30"
+          className="pixel-btn"
+          style={{
+            width: '100%', maxWidth: '260px',
+            padding: '14px',
+            fontSize: '0.65rem',
+            background: 'var(--accent)',
+            color: '#050508',
+            border: '2px solid var(--accent)',
+            boxShadow: '4px 4px 0 var(--accent-border)',
+            letterSpacing: '0.1em',
+          }}
         >
-          Comenzar
+          &gt; COMENZAR
         </button>
       </div>
     )
@@ -135,61 +125,102 @@ export default function MemoryGame({ onScore }) {
 
   if (phase === 'won') {
     return (
-      <div className="flex flex-col items-center justify-center h-full px-6 gap-5">
-        <div className="text-5xl">🏆</div>
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-1">¡Felicitaciones!</h2>
-          <p className="text-gray-400 text-sm">Completaste el tablero</p>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '24px', gap: '20px' }}>
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontSize: '0.5rem', color: 'var(--accent)', letterSpacing: '0.2em', marginBottom: '8px' }}>
+            // COMPLETADO
+          </p>
+          <h2 style={{ fontSize: '0.8rem', color: '#fff', letterSpacing: '0.1em', marginBottom: '4px' }}>VICTORIA</h2>
+          <p style={{ fontSize: '0.4rem', color: 'var(--text-dim)', fontFamily: "'Courier New', monospace" }}>
+            Todos los pares encontrados
+          </p>
         </div>
-        <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
-          <StatCard label="Intentos" value={attempts} />
-          <StatCard label="Tiempo" value={formatTime(elapsed)} />
-          <StatCard label="Puntaje" value={score} accent />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', width: '100%', maxWidth: '280px' }}>
+          <StatCard label="INTENTOS" value={attempts} />
+          <StatCard label="TIEMPO"   value={formatTime(elapsed)} />
+          <StatCard label="PUNTAJE"  value={score} accent />
         </div>
-        <div className="flex flex-col gap-2 w-full max-w-xs">
-          <button
-            onClick={startGame}
-            className="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-gray-950 font-bold rounded-xl transition-colors"
-          >
-            Jugar de nuevo
-          </button>
-        </div>
+        <button
+          onClick={startGame}
+          className="pixel-btn"
+          style={{
+            width: '100%', maxWidth: '280px',
+            padding: '12px',
+            fontSize: '0.6rem',
+            background: 'var(--accent)',
+            color: '#050508',
+            border: '2px solid var(--accent)',
+            boxShadow: '4px 4px 0 var(--accent-border)',
+          }}
+        >
+          &gt; DE NUEVO
+        </button>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Stats bar */}
-      <div className="flex justify-between items-center px-4 py-2 border-b border-gray-800 shrink-0">
-        <span className="text-gray-400 text-sm">
-          Intentos: <span className="text-white font-semibold">{attempts}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Stats */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '8px 16px',
+        borderBottom: '1px solid var(--accent-border)',
+        flexShrink: 0,
+      }}>
+        <span style={{ fontSize: '0.4rem', color: 'var(--text-dim)' }}>
+          INTENTOS: <span style={{ color: '#fff' }}>{attempts}</span>
         </span>
-        <span className="text-gray-400 text-sm">
-          {matchedCount}/6 pares
+        <span style={{ fontSize: '0.4rem', color: 'var(--text-dim)' }}>
+          {matchedCount}/6 PARES
         </span>
-        <span className="text-cyan-400 font-mono text-sm">{formatTime(elapsed)}</span>
+        <span style={{ fontSize: '0.4rem', color: 'var(--accent)', fontFamily: 'monospace' }}>
+          {formatTime(elapsed)}
+        </span>
       </div>
 
-      {/* Card grid */}
-      <div className="flex-1 overflow-auto p-3">
-        <div className="grid grid-cols-4 gap-2 max-w-sm mx-auto">
+      {/* Cards grid */}
+      <div style={{ flex: 1, overflow: 'auto', padding: '12px' }}>
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '8px', maxWidth: '340px', margin: '0 auto',
+        }}>
           {cards.map((card, i) => (
             <button
               key={card.id}
               onClick={() => handleCardClick(i)}
               disabled={card.isFlipped || card.isMatched}
-              className={`aspect-[3/4] rounded-lg text-center flex items-center justify-center transition-all duration-300 text-xs font-semibold p-1 leading-tight
-                ${card.isMatched
-                  ? 'bg-emerald-500/20 border-2 border-emerald-500 text-emerald-400'
+              style={{
+                aspectRatio: '3/4',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '0.35rem',
+                fontFamily: "'Courier New', monospace",
+                fontWeight: 'bold',
+                padding: '4px',
+                lineHeight: 1.4,
+                textAlign: 'center',
+                cursor: card.isFlipped || card.isMatched ? 'default' : 'pointer',
+                border: card.isMatched
+                  ? '1px solid #50e3b0'
                   : card.isFlipped
-                    ? 'bg-cyan-500/20 border-2 border-cyan-500 text-cyan-300'
-                    : 'bg-gray-800 border border-gray-700 text-transparent hover:bg-gray-750 cursor-pointer'
-                }`}
+                    ? '1px solid var(--accent)'
+                    : '1px solid rgba(229,108,120,0.2)',
+                background: card.isMatched
+                  ? 'rgba(80,227,176,0.1)'
+                  : card.isFlipped
+                    ? 'var(--accent-dim)'
+                    : 'var(--surface)',
+                color: card.isMatched
+                  ? '#50e3b0'
+                  : card.isFlipped
+                    ? 'var(--accent)'
+                    : 'transparent',
+                transition: 'all 0.3s',
+              }}
             >
               {(card.isFlipped || card.isMatched)
-                ? <span className="break-words">{card.label}</span>
-                : <span className="text-gray-600 text-lg">?</span>
+                ? <span style={{ wordBreak: 'break-word' }}>{card.label}</span>
+                : <span style={{ color: 'rgba(229,108,120,0.3)', fontSize: '1rem' }}>?</span>
               }
             </button>
           ))}
@@ -199,11 +230,35 @@ export default function MemoryGame({ onScore }) {
   )
 }
 
+function InfoCard({ icon, label, sub }) {
+  return (
+    <div style={{
+      background: 'var(--surface)',
+      border: '1px solid var(--accent-border)',
+      padding: '12px 8px',
+      textAlign: 'center',
+    }}>
+      <div style={{ fontSize: '1.2rem', marginBottom: '6px' }}>{icon}</div>
+      <div style={{ fontSize: '0.4rem', color: '#fff', letterSpacing: '0.1em' }}>{label}</div>
+      <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)', marginTop: '2px', fontFamily: "'Courier New', monospace" }}>{sub}</div>
+    </div>
+  )
+}
+
 function StatCard({ label, value, accent }) {
   return (
-    <div className="bg-gray-800 rounded-xl p-3 text-center border border-gray-700">
-      <div className={`text-lg font-bold ${accent ? 'text-cyan-400' : 'text-white'}`}>{value}</div>
-      <div className="text-gray-500 text-xs">{label}</div>
+    <div style={{
+      background: 'var(--surface)',
+      border: `1px solid ${accent ? 'var(--accent-border)' : 'rgba(229,108,120,0.15)'}`,
+      padding: '10px 6px',
+      textAlign: 'center',
+    }}>
+      <div style={{ fontSize: '0.7rem', color: accent ? 'var(--accent)' : '#fff', fontFamily: "'Courier New', monospace" }}>
+        {value}
+      </div>
+      <div style={{ fontSize: '0.35rem', color: 'var(--text-dim)', marginTop: '4px', letterSpacing: '0.1em' }}>
+        {label}
+      </div>
     </div>
   )
 }
