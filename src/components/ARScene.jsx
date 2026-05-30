@@ -98,16 +98,19 @@ export default function ARScene() {
       const sun = new THREE.DirectionalLight(0xffffff, 1.1)
       sun.position.set(2, 4, 3)
       scene.add(sun)
-      scene.add(Object.assign(new THREE.DirectionalLight(0x6688cc, 0.35), {
-        position: new THREE.Vector3(-3, -1, -2)
-      }))
+      const fill = new THREE.DirectionalLight(0x6688cc, 0.35)
+      fill.position.set(-3, -1, -2)
+      scene.add(fill)
 
       // Load model
       let brain
       try {
+        console.log('[NeuroExplora] loading brain model…')
         brain = await loadBrainModel(p => setLoadProgress(p))
+        console.log('[NeuroExplora] brain model loaded', brain)
         if (cleanedUp) return
       } catch (err) {
+        console.error('[NeuroExplora] model load error:', err)
         if (!cleanedUp) { setMode('error'); setErrorMsg(err?.message || String(err)) }
         return
       }
@@ -175,7 +178,10 @@ export default function ARScene() {
       loop()
     }
 
-    init()
+    init().catch(err => {
+      console.error('[NeuroExplora] init error:', err)
+      if (!cleanedUp) { setMode('error'); setErrorMsg(err?.message || String(err)) }
+    })
 
     return () => {
       cleanedUp = true
