@@ -77,10 +77,6 @@ export function loadBrainModel(onProgress) {
           obj.userData.dimMaterial = dimMat
         })
 
-        // Scale and orient for AR marker
-        root.scale.setScalar(0.06)
-        root.rotation.x = -0.15
-
         resolve(root)
       },
       (progress) => {

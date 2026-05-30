@@ -3,7 +3,7 @@ import BottomNav from './components/BottomNav.jsx'
 import GamesView from './views/GamesView.jsx'
 import AboutView from './views/AboutView.jsx'
 
-// Lazy-load ARScene so mind-ar + Three.js only load when the AR tab is opened
+// Lazy-load ARScene so Three.js only loads when the AR tab is opened
 const ARScene = lazy(() => import('./components/ARScene.jsx'))
 
 function LoadingFallback() {
