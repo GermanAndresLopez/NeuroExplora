@@ -5,6 +5,8 @@ import GamesView from './views/GamesView.jsx'
 import ConfiguracionView from './views/ConfiguracionView.jsx'
 import { saveScore } from './hooks/useScores.js'
 
+const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+
 export default function App() {
   const [view, setView]       = useState('inicio')
   const [gameTab, setGameTab] = useState('memory')
@@ -31,14 +33,14 @@ export default function App() {
       {/* Scanlines overlay */}
       <div className="fixed inset-0 pointer-events-none z-[9990] scanlines" />
 
-      {/* Content area */}
-      <div className="absolute inset-0 bottom-14 overflow-hidden">
+      {/* Content area — full height on mobile (no nav), offset on desktop */}
+      <div className={`absolute inset-0 ${IS_MOBILE ? '' : 'bottom-14'} overflow-hidden`}>
         {view === 'inicio'  && <InicioView onNavigate={setView} />}
-        {view === 'juegos'  && <GamesView tab={gameTab} onTabChange={setGameTab} onScore={handleScore} />}
-        {view === 'config'  && <ConfiguracionView />}
+        {view === 'juegos'  && <GamesView tab={gameTab} onTabChange={setGameTab} onScore={handleScore} onHome={() => setView('inicio')} />}
+        {view === 'config'  && <ConfiguracionView onHome={() => setView('inicio')} />}
       </div>
 
-      <BottomNav currentView={view} onChange={setView} />
+      {!IS_MOBILE && <BottomNav currentView={view} onChange={setView} />}
     </div>
   )
 }

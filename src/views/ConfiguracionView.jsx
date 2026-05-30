@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
 import { getScores } from '../hooks/useScores.js'
+import { playBack } from '../hooks/useSound.js'
+
+const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
@@ -32,7 +35,7 @@ async function queryPermission(name) {
   } catch { return 'n/a' }
 }
 
-export default function ConfiguracionView() {
+export default function ConfiguracionView({ onHome }) {
   const [user, setUser]             = useState(() => getStoredUser())
   const [gisReady, setGisReady]     = useState(false)
   const [cameraPerm, setCameraPerm] = useState('…')
@@ -87,9 +90,25 @@ export default function ConfiguracionView() {
       <div style={{ padding: '16px 16px 80px' }}>
 
         {/* Header */}
-        <p style={{ fontSize: '0.6rem', color: 'var(--accent)', letterSpacing: '0.2em', marginBottom: '8px', opacity: 0.7 }}>
-          //SCN_03 &nbsp;&gt;&nbsp; CONFIGURACIÓN
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <p style={{ fontSize: '0.6rem', color: 'var(--accent)', letterSpacing: '0.2em', opacity: 0.7 }}>
+            //SCN_03 &nbsp;&gt;&nbsp; CONFIGURACIÓN
+          </p>
+          {IS_MOBILE && onHome && (
+            <button
+              onClick={() => { playBack(); onHome() }}
+              style={{
+                fontSize: '0.5rem', color: 'var(--accent)',
+                background: 'transparent', border: '1px solid var(--accent-border)',
+                padding: '5px 10px', cursor: 'pointer',
+                fontFamily: "'Press Start 2P', monospace",
+                letterSpacing: '0.05em',
+              }}
+            >
+              ← INICIO
+            </button>
+          )}
+        </div>
         <h1 style={{ fontSize: '1rem', color: '#fff', letterSpacing: '0.1em', marginBottom: '20px' }}>
           SISTEMA
         </h1>

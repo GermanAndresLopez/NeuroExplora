@@ -2,8 +2,9 @@ import { useState, Suspense, lazy } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { playClick, playSelect, playBack } from '../hooks/useSound.js'
 
-const ARScene   = lazy(() => import('../components/ARScene.jsx'))
 const ARSceneXR = lazy(() => import('../components/ARSceneXR.jsx'))
+
+const BRAIN_SRC = '/models/brain_total.html'
 
 const APP_URL  = import.meta.env.VITE_APP_URL || 'https://neuro-explora-2vt08th89-german-lopezs-projects.vercel.app'
 const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
@@ -33,9 +34,12 @@ export default function InicioView({ onNavigate }) {
   if (experience === '3d') {
     return (
       <div style={{ position: 'absolute', inset: 0 }}>
-        <Suspense fallback={<LoadingFill />}>
-          <ARScene />
-        </Suspense>
+        <iframe
+          src={BRAIN_SRC}
+          title="Explorador 3D del Cerebro"
+          style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
+          allow="autoplay"
+        />
         <button
           onClick={handleExitAR}
           style={{
@@ -60,9 +64,18 @@ export default function InicioView({ onNavigate }) {
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
       {/* Brain in background */}
-      <Suspense fallback={<div style={{ position: 'absolute', inset: 0, background: 'var(--bg)' }} />}>
-        <ARScene />
-      </Suspense>
+      <iframe
+        src={BRAIN_SRC}
+        title=""
+        aria-hidden="true"
+        style={{
+          position: 'absolute', inset: 0,
+          width: '100%', height: '100%',
+          border: 'none', display: 'block',
+          opacity: 0.55,
+          pointerEvents: 'none',
+        }}
+      />
 
       {/* Game menu overlay */}
       <div

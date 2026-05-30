@@ -1,8 +1,10 @@
 import MemoryGame from '../components/games/MemoryGame.jsx'
 import QuizGame from '../components/games/QuizGame.jsx'
-import { playClick } from '../hooks/useSound.js'
+import { playClick, playBack } from '../hooks/useSound.js'
 
-export default function GamesView({ tab, onTabChange, onScore }) {
+const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+
+export default function GamesView({ tab, onTabChange, onScore, onHome }) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -12,9 +14,25 @@ export default function GamesView({ tab, onTabChange, onScore }) {
         background: 'rgba(13,13,20,0.9)',
         flexShrink: 0,
       }}>
-        <p style={{ fontSize: '0.6rem', color: 'var(--accent)', letterSpacing: '0.2em', marginBottom: '8px', opacity: 0.7 }}>
-          //SCN_02 &nbsp;&gt;&nbsp; MÓDULO JUEGOS
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <p style={{ fontSize: '0.6rem', color: 'var(--accent)', letterSpacing: '0.2em', opacity: 0.7 }}>
+            //SCN_02 &nbsp;&gt;&nbsp; MÓDULO JUEGOS
+          </p>
+          {IS_MOBILE && onHome && (
+            <button
+              onClick={() => { playBack(); onHome() }}
+              style={{
+                fontSize: '0.5rem', color: 'var(--accent)',
+                background: 'transparent', border: '1px solid var(--accent-border)',
+                padding: '5px 10px', cursor: 'pointer',
+                fontFamily: "'Press Start 2P', monospace",
+                letterSpacing: '0.05em',
+              }}
+            >
+              ← INICIO
+            </button>
+          )}
+        </div>
         <h1 style={{ fontSize: '1rem', color: '#fff', letterSpacing: '0.1em', marginBottom: '12px' }}>
           JUEGOS
         </h1>
