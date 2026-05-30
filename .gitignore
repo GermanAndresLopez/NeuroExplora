@@ -5,3 +5,7 @@ dist/
 
 # Vite cache
 .vite/
+
+# Original (uncompressed) GLB — only the Draco version is needed
+public/models/cerebro.glb
+public/models/cerebro_glitch.glb
