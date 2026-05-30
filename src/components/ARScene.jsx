@@ -29,6 +29,7 @@ export default function ARScene() {
   const [mode, setModeState] = useState('loading')
   const [loadProgress, setLoadProgress] = useState(0)
   const [selectedRegion, setSelectedRegion] = useState(null)
+  const [arErrorMsg, setArErrorMsg] = useState('')
 
   const setMode = useCallback((m) => {
     modeRef.current = m
@@ -182,6 +183,7 @@ export default function ARScene() {
           setMode('camera-error')
         } else {
           setMode('ar-error')
+          setArErrorMsg(err?.message || err?.toString() || 'Error desconocido')
         }
       }
     }
@@ -258,15 +260,16 @@ export default function ARScene() {
             <WarnIcon className="w-8 h-8 text-yellow-400" />
           </div>
           <div className="text-center">
-            <h2 className="text-white text-lg font-bold mb-2">Archivo de marcador no encontrado</h2>
+            <h2 className="text-white text-lg font-bold mb-2">Error al iniciar AR</h2>
             <p className="text-gray-400 text-sm leading-relaxed">
-              El archivo <code className="text-cyan-400 font-mono text-xs">brain-target.mind</code> aún
-              no ha sido generado. Consulta el README para generarlo con el compilador de Mind AR.
+              El motor de realidad aumentada no pudo iniciarse.
             </p>
           </div>
-          <div className="p-4 bg-gray-800/60 rounded-xl border border-gray-700 w-full max-w-xs text-xs text-gray-400 font-mono leading-relaxed">
-            {'# Genera el archivo .mind:\nnpm run compile-target\n# o usa el compilador online en:\nhiukim.github.io/mind-ar-js-doc/tools/compile'}
-          </div>
+          {arErrorMsg && (
+            <div className="p-4 bg-gray-800/60 rounded-xl border border-red-700/50 w-full max-w-xs text-xs text-red-300 font-mono leading-relaxed break-all">
+              {arErrorMsg}
+            </div>
+          )}
         </div>
       )}
 
