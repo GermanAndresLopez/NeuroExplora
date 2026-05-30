@@ -39,7 +39,7 @@ const QUESTIONS = [
   },
 ]
 
-export default function QuizGame() {
+export default function QuizGame({ onScore }) {
   const [phase, setPhase] = useState('idle') // 'idle' | 'question' | 'feedback' | 'results'
   const [questionIndex, setQuestionIndex] = useState(0)
   const [selected, setSelected] = useState(null)
@@ -63,6 +63,8 @@ export default function QuizGame() {
   function nextQuestion() {
     if (questionIndex + 1 >= QUESTIONS.length) {
       setPhase('results')
+      const finalAnswers = [...answers, correct]
+      onScore?.('quiz', finalAnswers.filter(Boolean).length)
     } else {
       setQuestionIndex(i => i + 1)
       setSelected(null)

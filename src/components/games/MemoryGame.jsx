@@ -25,7 +25,7 @@ function generateCards() {
   }))
 }
 
-export default function MemoryGame() {
+export default function MemoryGame({ onScore }) {
   const [phase, setPhase] = useState('idle') // 'idle' | 'playing' | 'checking' | 'won'
   const [cards, setCards] = useState([])
   const [flipped, setFlipped] = useState([])
@@ -81,6 +81,8 @@ export default function MemoryGame() {
           setMatchedCount(newMatched)
           if (newMatched === REGION_NAMES.length) {
             setPhase('won')
+            const finalScore = Math.max(0, 600 - (attempts + 1) * 10 - Math.floor(elapsed / 5))
+            onScore?.('memory', finalScore)
           } else {
             setPhase('playing')
           }

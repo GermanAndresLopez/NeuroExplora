@@ -1,7 +1,7 @@
 import MemoryGame from '../components/games/MemoryGame.jsx'
 import QuizGame from '../components/games/QuizGame.jsx'
 
-export default function GamesView({ tab, onTabChange }) {
+export default function GamesView({ tab, onTabChange, onScore }) {
   return (
     <div className="flex flex-col h-full">
       {/* Tab header */}
@@ -19,8 +19,8 @@ export default function GamesView({ tab, onTabChange }) {
 
       {/* Game content */}
       <div className="flex-1 min-h-0 overflow-auto">
-        {tab === 'memory' && <MemoryGame />}
-        {tab === 'quiz' && <QuizGame />}
+        {tab === 'memory' && <MemoryGame onScore={onScore} />}
+        {tab === 'quiz' && <QuizGame onScore={onScore} />}
       </div>
     </div>
   )
