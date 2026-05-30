@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeuroExplora — Compilar marcador AR</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .card { background: #1e293b; border-radius: 16px; padding: 32px; width: 100%; max-width: 520px; box-shadow: 0 25px 50px rgba(0,0,0,.5); }
+    h1 { font-size: 1.4rem; font-weight: 700; color: #06b6d4; margin-bottom: 8px; }
+    p.sub { color: #94a3b8; font-size: .88rem; line-height: 1.5; margin-bottom: 24px; }
+    .step { background: #0f172a; border-radius: 10px; padding: 16px; margin-bottom: 14px; border: 1px solid #334155; }
+    .step-title { font-weight: 600; font-size: .8rem; color: #06b6d4; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .05em; }
+    input[type="file"] { display: none; }
+    .btn { display: inline-block; padding: 9px 18px; border-radius: 8px; font-weight: 600; font-size: .88rem; cursor: pointer; border: none; transition: all .15s; }
+    .btn-cyan { background: #06b6d4; color: #0f172a; }
+    .btn-cyan:hover:not(:disabled) { background: #0891b2; }
+    .btn-cyan:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+    .btn-ghost { background: transparent; color: #06b6d4; border: 1px solid #06b6d4; margin-left: 8px; cursor: pointer; }
+    .btn-ghost:hover { background: #06b6d410; }
+    #file-name { margin-left: 10px; font-size: .82rem; color: #94a3b8; }
+    #preview-wrap { display: none; margin-top: 10px; }
+    #preview-wrap img { max-width: 140px; border-radius: 6px; border: 2px solid #334155; }
+    #progress-wrap { display: none; margin-top: 12px; }
+    #bar-outer { background: #334155; border-radius: 99px; height: 7px; }
+    #bar-inner { background: #06b6d4; height: 7px; border-radius: 99px; width: 0; transition: width .2s; }
+    #bar-label { font-size: .78rem; color: #94a3b8; margin-top: 5px; }
+    #loader-msg { font-size: .8rem; margin-bottom: 10px; }
+    #loader-msg.ready { color: #10b981; }
+    #loader-msg.loading { color: #f59e0b; }
+    #loader-msg.error-msg { color: #ef4444; }
+    #status { margin-top: 14px; font-size: .85rem; padding: 10px 14px; border-radius: 8px; display: none; }
+    #status.ok  { background: #064e3b20; border: 1px solid #10b981; color: #10b981; }
+    #status.err { background: #7f1d1d20; border: 1px solid #ef4444; color: #ef4444; }
+    .note { font-size: .76rem; color: #475569; margin-top: 8px; line-height: 1.4; }
+    code { background: #0f172a; padding: 1px 5px; border-radius: 4px; font-size: .82em; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>NeuroExplora · Compilar marcador AR</h1>
+  <p class="sub">Convierte la imagen PNG a formato <code>.mind</code> directamente en el navegador. Sin Visual Studio, sin node-gyp.</p>
+
+  <div class="step">
+    <div class="step-title">Estado de Mind AR</div>
+    <div id="loader-msg" class="loading">Cargando Mind AR desde CDN...</div>
+  </div>
+
+  <div class="step">
+    <div class="step-title">1 · Imagen marcador</div>
+    <label for="file-input">
+      <span class="btn-ghost btn">Elegir PNG</span>
+    </label>
+    <input type="file" id="file-input" accept="image/*">
+    <span id="file-name">ninguna seleccionada</span>
+    <div id="preview-wrap"><img id="preview-img" src="" alt="preview"></div>
+    <p class="note">Usa <code>public/targets/brain-marker.png</code> (ya generada).</p>
+  </div>
+
+  <div class="step">
+    <div class="step-title">2 · Compilar</div>
+    <button class="btn btn-cyan" id="compile-btn" disabled>Compilar a .mind</button>
+    <div id="progress-wrap">
+      <div id="bar-outer"><div id="bar-inner"></div></div>
+      <div id="bar-label">Procesando features con TensorFlow...</div>
+    </div>
+  </div>
+
+  <div id="status"></div>
+</div>
+
+<script type="module">
+  // ES module import — mind-ar bundles its own TF.js, no separate import needed
+  import 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js';
+
+  // --- DOM refs ---
+  const loaderMsg   = document.getElementById('loader-msg');
+  const fileInput   = document.getElementById('file-input');
+  const fileName    = document.getElementById('file-name');
+  const previewImg  = document.getElementById('preview-img');
+  const previewWrap = document.getElementById('preview-wrap');
+  const compileBtn  = document.getElementById('compile-btn');
+  const progressWrap = document.getElementById('progress-wrap');
+  const barInner    = document.getElementById('bar-inner');
+  const barLabel    = document.getElementById('bar-label');
+  const statusDiv   = document.getElementById('status');
+
+  // --- MINDAR loaded ---
+  if (window.MINDAR && window.MINDAR.IMAGE && window.MINDAR.IMAGE.Compiler) {
+    loaderMsg.textContent = '✓ Mind AR listo';
+    loaderMsg.className = 'ready';
+  } else {
+    loaderMsg.textContent = '✗ Error cargando Mind AR. Revisa la consola.';
+    loaderMsg.className = 'error-msg';
+  }
+
+  // --- State ---
+  let selectedFile = null;
+
+  fileInput.addEventListener('change', (e) => {
+    selectedFile = e.target.files[0];
+    if (!selectedFile) return;
+    fileName.textContent = selectedFile.name;
+    const url = URL.createObjectURL(selectedFile);
+    previewImg.src = url;
+    previewWrap.style.display = 'block';
+    compileBtn.disabled = !window.MINDAR?.IMAGE?.Compiler;
+    statusDiv.style.display = 'none';
+  });
+
+  compileBtn.addEventListener('click', async () => {
+    if (!selectedFile || !window.MINDAR?.IMAGE?.Compiler) return;
+
+    compileBtn.disabled = true;
+    progressWrap.style.display = 'block';
+    barInner.style.width = '0%';
+    statusDiv.style.display = 'none';
+
+    try {
+      showStatus('ok', 'Cargando imagen...');
+
+      const img = await loadImg(selectedFile);
+      showStatus('ok', 'Compilando features (30–60 s)...');
+
+      const compiler = new MINDAR.IMAGE.Compiler();
+      await compiler.compileImageTargets([img], (pct) => {
+        const p = Math.round(pct);
+        barInner.style.width = p + '%';
+        barLabel.textContent = `Procesando... ${p}%`;
+      });
+
+      barInner.style.width = '100%';
+      barLabel.textContent = 'Exportando...';
+
+      const buffer = compiler.exportData();
+      download(buffer, 'brain-target.mind');
+
+      showStatus('ok', '✓ Descargado brain-target.mind — muévelo a public/targets/brain-target.mind');
+    } catch (err) {
+      console.error(err);
+      showStatus('err', 'Error: ' + err.message);
+    } finally {
+      compileBtn.disabled = false;
+    }
+  });
+
+  function loadImg(file) {
+    return new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => res(img);
+      img.onerror = rej;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  function download(buffer, name) {
+    const blob = new Blob([buffer], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement('a'), { href: url, download: name });
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function showStatus(type, msg) {
+    statusDiv.className = type;
+    statusDiv.textContent = msg;
+    statusDiv.style.display = 'block';
+  }
+</script>
+</body>
+</html>
