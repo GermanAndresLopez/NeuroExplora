@@ -10,7 +10,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Press Start 2P',monospace}
 #video-bg{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;display:block}
-#canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:auto}
+canvas{position:fixed;top:0;left:0;width:100%!important;height:100%!important;z-index:1;pointer-events:auto}
 #hud{position:fixed;inset:0;z-index:10;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between}
 #top{padding:14px 16px;background:linear-gradient(to bottom,rgba(5,5,8,.85),transparent);display:flex;justify-content:space-between;align-items:flex-start}
 #logo p:first-child{font-size:9px;color:#e56c78;letter-spacing:.2em;opacity:.85}
@@ -19,50 +19,53 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Pr
 #bottom{padding:14px 16px 24px;background:linear-gradient(to top,rgba(5,5,8,.75),transparent);text-align:center}
 #msg{font-size:10px;color:rgba(255,255,255,.55);letter-spacing:.08em;line-height:1.8}
 #msg.found{color:#50e3b0}
-#frame{position:fixed;top:50%;left:50%;transform:translate(-50%,-58%);width:200px;height:200px;pointer-events:none;z-index:9;transition:opacity .5s}
-.co{position:absolute;width:22px;height:22px}
-.tl{top:0;left:0;border-top:2px solid #e56c78;border-left:2px solid #e56c78}
-.tr{top:0;right:0;border-top:2px solid #e56c78;border-right:2px solid #e56c78}
-.bl{bottom:0;left:0;border-bottom:2px solid #e56c78;border-left:2px solid #e56c78}
-.br{bottom:0;right:0;border-bottom:2px solid #e56c78;border-right:2px solid #e56c78}
-.sl{position:absolute;left:4px;right:4px;height:1px;background:linear-gradient(90deg,transparent,#e56c78,transparent);animation:sy 2s ease-in-out infinite}
-@keyframes sy{0%{top:4px;opacity:.3}50%{top:188px;opacity:1}100%{top:4px;opacity:.3}}
-#scan-btn{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:11;
-  padding:14px 28px;background:#e56c78;color:#050508;border:none;cursor:pointer;
-  font-size:11px;letter-spacing:.08em;box-shadow:4px 4px 0 rgba(229,108,120,.3)}
-#scan-btn.hidden{display:none}
+#start-overlay{position:fixed;inset:0;z-index:30;background:rgba(5,5,8,.93);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:28px}
+#start-overlay h2{font-size:11px;color:#e56c78;letter-spacing:.12em;line-height:2}
+#start-overlay p{font-size:9px;color:rgba(255,255,255,.45);line-height:2;text-align:center;max-width:280px}
+#start-overlay.hidden{display:none}
+#start-btn{padding:14px 32px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:11px;font-family:'Press Start 2P',monospace;letter-spacing:.08em;box-shadow:4px 4px 0 rgba(229,108,120,.3)}
+#place-hint{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:11;
+  font-size:9px;color:rgba(255,255,255,.6);letter-spacing:.07em;text-align:center;
+  background:rgba(5,5,8,.7);padding:10px 16px;pointer-events:none}
+#place-hint.hidden{display:none}
 #panel{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(5,5,8,.97);
   border-top:1px solid rgba(229,108,120,.4);padding:20px 18px 36px;
   transform:translateY(100%);transition:transform .3s ease}
 #panel.open{transform:translateY(0)}
 #p-num{font-size:26px;font-weight:700;opacity:.1;color:#fff;line-height:1;margin-bottom:2px;font-family:monospace}
 #p-name{font-size:13px;color:#e56c78;letter-spacing:.12em;margin-bottom:10px}
-#p-desc{font-size:11px;color:rgba(255,255,255,.65);line-height:1.9;max-height:120px;overflow-y:auto;font-family:monospace}
+#p-desc{font-size:11px;color:rgba(255,255,255,.65);line-height:1.9;max-height:130px;overflow-y:auto;font-family:monospace}
 #p-close{position:absolute;top:14px;right:16px;background:transparent;border:none;color:rgba(255,255,255,.35);font-size:22px;cursor:pointer;pointer-events:auto}
 </style>
 </head>
 <body>
+
 <video id="video-bg" autoplay playsinline muted></video>
-<canvas id="canvas"></canvas>
+
 <div id="hud">
   <div id="top">
     <div id="logo"><p>// MODO AR</p><p>NEUROEXPLORA</p></div>
     <button id="back-btn" onclick="window.location.href='/'">× SALIR</button>
   </div>
-  <div id="bottom"><p id="msg">APUNTA AL MARCADOR Y PULSA ACTIVAR</p></div>
+  <div id="bottom"><p id="msg"></p></div>
 </div>
-<div id="frame">
-  <div class="co tl"></div><div class="co tr"></div>
-  <div class="co bl"></div><div class="co br"></div>
-  <div class="sl"></div>
+
+<div id="place-hint" class="hidden">APUNTA AL SUELO O SUPERFICIE · TOCA PARA COLOCAR</div>
+
+<div id="start-overlay">
+  <h2>MODO AR</h2>
+  <p>El cerebro se ancla a una superficie real.<br>Muévete alrededor para explorarlo.</p>
+  <button id="start-btn" onclick="startAR()">&#9658; &nbsp;ACTIVAR AR</button>
+  <p style="font-size:8px;color:rgba(255,255,255,.25)">Requiere Chrome en Android con ARCore.<br>En otros dispositivos usa modo giroscopio.</p>
 </div>
-<button id="scan-btn" onclick="activateAR()">&#9658; &nbsp;ACTIVAR AR</button>
+
 <div id="panel">
   <button id="p-close" onclick="closePanel()">&#xd7;</button>
   <div id="p-num">01</div>
   <div id="p-name"></div>
   <div id="p-desc"></div>
 </div>
+
 <script>
 const REGIONS = [{"name": "Lobulo Frontal", "desc": "Controla la toma de decisiones, emociones, personalidad y autocontrol.", "hex": "#4d88ff"}, {"name": "Lobulo Parietal", "desc": "Procesa informaci\u00f3n sensorial: tacto, temperatura y orientaci\u00f3n espacial.", "hex": "#44dd88"}, {"name": "Lobulo Occipital", "desc": "Interpreta todo lo que vemos: colores, formas y movimiento visual.", "hex": "#bb55ff"}, {"name": "Lobulo Temporal", "desc": "Procesa el lenguaje, la memoria auditiva y el reconocimiento de objetos.", "hex": "#ffcc33"}, {"name": "Cerebelo", "desc": "Coordina el movimiento y el equilibrio. Controla la precisi\u00f3n motora.", "hex": "#ff7733"}, {"name": "Tronco Encef\u00e1lico", "desc": "Regula funciones vitales: respiraci\u00f3n, ritmo card\u00edaco y ciclos de sue\u00f1o.", "hex": "#ff4477"}];
 const MARKERS = [[0.4, 0.5, 0.75], [-0.05, 0.75, 0.1], [-0.7, 0.3, -0.5], [0.7, -0.1, 0.3], [-0.4, -0.55, -0.3], [0.05, -0.75, 0.1]];
@@ -75,28 +78,38 @@ function decodeF32(b64){
   return new Float32Array(buf);
 }
 
-// ── Three.js setup ────────────────────────────────────
-const canvas = document.getElementById('canvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+// ── Three.js renderer ────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
 renderer.setClearColor(0x000000, 0);
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.xr.enabled = true;
+document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(42, innerWidth/innerHeight, 0.01, 100);
-camera.position.set(0, 0, 4.56);
+const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.01, 100);
+camera.position.set(0, 0, 0);
+scene.add(camera);
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 const d1=new THREE.DirectionalLight(0xffffff,1.0); d1.position.set(2,3,4); scene.add(d1);
 const d2=new THREE.DirectionalLight(0x8899ff,0.35); d2.position.set(-3,-1,-2); scene.add(d2);
-const pt=new THREE.PointLight(0xffffff,0.4,20); pt.position.set(1,2,2); scene.add(pt);
+const pt=new THREE.PointLight(0xffffff,0.6,20); scene.add(pt);
 
+window.addEventListener('resize',()=>{
+  renderer.setSize(innerWidth,innerHeight);
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+});
+
+// ── Cerebro (mismo modelo que brain_total.html) ──────
 const brainGroup = new THREE.Group();
 brainGroup.visible = false;
 scene.add(brainGroup);
 
 const ACTIVE_HEX = [0x4d88ff, 0x44dd88, 0xbb55ff, 0xffcc33, 0xff7733, 0xff4477];
-
 const regionMeshes = [];
+
 REGION_B64.forEach((b64,i) => {
   const positions = decodeF32(b64);
   const geo = new THREE.BufferGeometry();
@@ -112,43 +125,25 @@ REGION_B64.forEach((b64,i) => {
   regionMeshes.push(mesh);
 });
 
-const allPositions=[];
-REGION_B64.forEach(b64=>{ const f=decodeF32(b64); for(let j=0;j<f.length;j++) allPositions.push(f[j]); });
-const fullGeo=new THREE.BufferGeometry();
-fullGeo.setAttribute('position',new THREE.Float32BufferAttribute(allPositions,3));
-fullGeo.computeVertexNormals();
-brainGroup.add(new THREE.Mesh(fullGeo,new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.08})));
-brainGroup.add(new THREE.Mesh(fullGeo.clone(),new THREE.MeshBasicMaterial({color:0x00ffcc,wireframe:true,transparent:true,opacity:0.04})));
+const allPos=[];
+REGION_B64.forEach(b64=>{ const f=decodeF32(b64); for(let j=0;j<f.length;j++) allPos.push(f[j]); });
+const wGeo=new THREE.BufferGeometry();
+wGeo.setAttribute('position',new THREE.Float32BufferAttribute(allPos,3));
+wGeo.computeVertexNormals();
+brainGroup.add(new THREE.Mesh(wGeo,new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.08})));
+brainGroup.add(new THREE.Mesh(wGeo.clone(),new THREE.MeshBasicMaterial({color:0x00ffcc,wireframe:true,transparent:true,opacity:0.04})));
 
-function onResize(){
-  renderer.setSize(innerWidth,innerHeight);
-  camera.aspect=innerWidth/innerHeight;
-  camera.updateProjectionMatrix();
-}
-window.addEventListener('resize',onResize);
-onResize();
+brainGroup.scale.setScalar(0.15);  // tamaño apropiado en metros WebXR
 
-// ── Cámara trasera ────────────────────────────────────
-(async function startCamera(){
-  const video = document.getElementById('video-bg');
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video:{ facingMode:'environment', width:{ideal:1280}, height:{ideal:720} }
-    });
-    video.srcObject = stream;
-    await video.play();
-  } catch(e){
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video:true });
-      video.srcObject = stream;
-      await video.play();
-    } catch(e2){
-      document.getElementById('msg').textContent = 'SIN ACCESO A CAMARA';
-    }
-  }
-})();
+// ── Reticle para hit-test ─────────────────────────────
+const reticleGeo = new THREE.RingGeometry(0.08, 0.10, 32).rotateX(-Math.PI/2);
+const reticle = new THREE.Mesh(reticleGeo, new THREE.MeshBasicMaterial({color:0xe56c78,transparent:true,opacity:0.8,side:THREE.DoubleSide}));
+reticle.matrixAutoUpdate = false;
+reticle.visible = false;
+scene.add(reticle);
 
-// ── Device orientation → world-locked ────────────────
+// ── Fallback: cámara getUserMedia + giroscopio ────────
+let fallbackMode = false;
 let hasOrient = false;
 const targetQuat = new THREE.Quaternion();
 const currentQuat = new THREE.Quaternion();
@@ -157,84 +152,165 @@ const _corr = new THREE.Quaternion(-Math.sqrt(0.5),0,0,Math.sqrt(0.5));
 
 function onOrientation(e){
   if(e.alpha==null) return;
-  _e.set(
-    THREE.MathUtils.degToRad(e.beta),
-    THREE.MathUtils.degToRad(e.alpha),
-    THREE.MathUtils.degToRad(-e.gamma),
-    'YXZ'
-  );
+  _e.set(THREE.MathUtils.degToRad(e.beta),THREE.MathUtils.degToRad(e.alpha),THREE.MathUtils.degToRad(-e.gamma),'YXZ');
   targetQuat.setFromEuler(_e).multiply(_corr);
   hasOrient = true;
 }
 
-function listenOrientation(){
-  window.addEventListener('deviceorientation', onOrientation, true);
-}
+async function startFallback(){
+  fallbackMode = true;
+  document.getElementById('video-bg').style.display = 'block';
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    document.getElementById('video-bg').srcObject = stream;
+    await document.getElementById('video-bg').play();
+  } catch(e){}
 
-function requestOrientPermission(){
-  if(typeof DeviceOrientationEvent!=='undefined' &&
-     typeof DeviceOrientationEvent.requestPermission==='function'){
-    DeviceOrientationEvent.requestPermission()
-      .then(r=>{ if(r==='granted') listenOrientation(); })
-      .catch(()=>listenOrientation());
+  if(typeof DeviceOrientationEvent!=='undefined' && typeof DeviceOrientationEvent.requestPermission==='function'){
+    DeviceOrientationEvent.requestPermission().then(r=>{ if(r==='granted') window.addEventListener('deviceorientation',onOrientation,true); }).catch(()=>window.addEventListener('deviceorientation',onOrientation,true));
   } else {
-    listenOrientation();
+    window.addEventListener('deviceorientation',onOrientation,true);
   }
-}
 
-// ── Activar AR ────────────────────────────────────────
-let arActive = false;
-function activateAR(){
-  if(arActive) return;
-  requestOrientPermission();
-  const btn = document.getElementById('scan-btn');
-  btn.disabled = true;
-  btn.textContent = 'ESCANEANDO...';
-  let steps=0;
-  const iv=setInterval(()=>{
-    steps++;
-    if(steps>=8){
-      clearInterval(iv);
-      arActive=true;
-      brainGroup.visible=true;
-      btn.classList.add('hidden');
-      document.getElementById('frame').style.opacity='0';
-      const msg=document.getElementById('msg');
-      msg.textContent='MUEVETE PARA EXPLORAR · TOCA UNA REGION';
-      msg.className='found';
-    }
-  },250);
-}
+  brainGroup.visible = true;
+  // En fallback la camara de Three.js queda fija, el cerebro usa posicion fija
+  camera.position.set(0,0,3);
+  brainGroup.position.set(0,0,0);
+  brainGroup.scale.setScalar(0.55);
 
-// ── Tap en regiones ───────────────────────────────────
-canvas.addEventListener('click',e=>{
-  if(!arActive) return;
-  if(document.getElementById('panel').classList.contains('open')) return;
-  const nx=(e.clientX/innerWidth)*2-1;
-  const ny=-(e.clientY/innerHeight)*2+1;
-  const ray=new THREE.Raycaster();
-  ray.setFromCamera(new THREE.Vector2(nx,ny),camera);
-  const hits=ray.intersectObjects(regionMeshes,false);
-  if(hits.length>0 && hits[0].object.userData.ri!==undefined) openPanel(hits[0].object.userData.ri);
-});
+  setMsg('MUEVETE PARA EXPLORAR · TOCA UNA REGION','found');
 
-// ── Render loop ───────────────────────────────────────
-let t=0;
-renderer.setAnimationLoop(()=>{
-  t+=0.016;
-  pt.position.set(Math.sin(t*0.5)*3,2,Math.cos(t*0.4)*3);
-  if(arActive){
+  let t=0;
+  renderer.setAnimationLoop(()=>{
+    t+=0.016;
+    pt.position.set(Math.sin(t*0.5)*3,2,Math.cos(t*0.4)*3);
     if(hasOrient){
       currentQuat.slerp(targetQuat,0.06);
       brainGroup.quaternion.copy(currentQuat);
     } else {
       brainGroup.rotation.y+=0.007;
     }
+    renderer.render(scene, camera);
+  });
+}
+
+// ── WebXR AR ──────────────────────────────────────────
+let hitTestSource = null;
+let hitTestSourceRequested = false;
+let brainPlaced = false;
+let xrSession = null;
+
+async function startAR(){
+  document.getElementById('start-overlay').classList.add('hidden');
+
+  const xrSupported = navigator.xr && await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false);
+
+  if(!xrSupported){
+    setMsg('Usando modo giroscopio');
+    await startFallback();
+    return;
   }
-  renderer.render(scene,camera);
+
+  try {
+    xrSession = await navigator.xr.requestSession('immersive-ar',{
+      requiredFeatures:['hit-test'],
+      optionalFeatures:['dom-overlay'],
+      domOverlay: { root: document.getElementById('hud').parentElement }
+    });
+  } catch(e){
+    setMsg('Usando modo giroscopio');
+    await startFallback();
+    return;
+  }
+
+  renderer.xr.setReferenceSpaceType('local');
+  await renderer.xr.setSession(xrSession);
+
+  document.getElementById('place-hint').classList.remove('hidden');
+  setMsg('APUNTA AL SUELO · TOCA PARA ANCLAR EL CEREBRO');
+
+  xrSession.addEventListener('end', ()=>{ brainPlaced=false; hitTestSource=null; hitTestSourceRequested=false; });
+
+  renderer.setAnimationLoop((timestamp, frame) => {
+    if(!frame) return;
+
+    // Obtener hit-test source
+    if(!hitTestSourceRequested){
+      const refSpace = renderer.xr.getReferenceSpace();
+      xrSession.requestReferenceSpace('viewer').then(viewerSpace=>{
+        xrSession.requestHitTestSource({space:viewerSpace}).then(src=>{ hitTestSource=src; });
+      });
+      hitTestSourceRequested = true;
+    }
+
+    // Actualizar reticle con hit-test
+    if(hitTestSource && !brainPlaced){
+      const refSpace = renderer.xr.getReferenceSpace();
+      const hitResults = frame.getHitTestResults(hitTestSource);
+      if(hitResults.length > 0){
+        const hit = hitResults[0];
+        const pose = hit.getPose(refSpace);
+        reticle.visible = true;
+        reticle.matrix.fromArray(pose.transform.matrix);
+      } else {
+        reticle.visible = false;
+      }
+    }
+
+    pt.position.set(Math.sin(Date.now()*0.0005)*3,2,Math.cos(Date.now()*0.0004)*3);
+    renderer.render(scene, camera);
+  });
+
+  // Tap para anclar el cerebro
+  xrSession.addEventListener('select', () => {
+    if(brainPlaced) return;
+    if(!reticle.visible) return;
+
+    // Anclar cerebro en la posicion del reticle
+    brainGroup.position.setFromMatrixPosition(reticle.matrix);
+    brainGroup.quaternion.setFromRotationMatrix(reticle.matrix);
+    brainGroup.visible = true;
+    brainPlaced = true;
+    reticle.visible = false;
+    document.getElementById('place-hint').classList.add('hidden');
+    setMsg('TOCA UNA REGION PARA EXPLORAR','found');
+  });
+}
+
+// ── Tap en regiones ───────────────────────────────────
+document.addEventListener('click', e=>{
+  if(document.getElementById('start-overlay').classList.contains('hidden')===false) return;
+  if(document.getElementById('panel').classList.contains('open')){
+    // tap fuera del panel lo cierra
+    return;
+  }
+  if(!brainGroup.visible) return;
+
+  const nx=(e.clientX/innerWidth)*2-1;
+  const ny=-(e.clientY/innerHeight)*2+1;
+
+  let cam;
+  if(fallbackMode){
+    cam = camera;
+  } else {
+    cam = renderer.xr.isPresenting ? renderer.xr.getCamera(camera) : camera;
+  }
+
+  const ray = new THREE.Raycaster();
+  ray.setFromCamera(new THREE.Vector2(nx,ny), cam);
+  const hits = ray.intersectObjects(regionMeshes, false);
+  if(hits.length>0 && hits[0].object.userData.ri!==undefined){
+    openPanel(hits[0].object.userData.ri);
+  }
 });
 
-// ── Panel info ────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────
+function setMsg(txt, cls=''){
+  const el = document.getElementById('msg');
+  el.textContent = txt;
+  el.className = cls;
+}
+
 function openPanel(i){
   const r=REGIONS[i];
   document.getElementById('p-num').textContent=String(i+1).padStart(2,'0');
