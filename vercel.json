@@ -4,6 +4,12 @@
   "outputDirectory": "dist",
   "headers": [
     {
+      "source": "/(ar\\.html)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate, max-age=0" }
+      ]
+    },
+    {
       "source": "/models/(.*\\.html)",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
