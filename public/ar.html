@@ -2,292 +2,332 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
 <title>NeuroExplora AR</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/aframe@1.5.0/dist/aframe.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.5/aframe/build/aframe-ar.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{overflow:hidden;background:#000;font-family:'Courier New',monospace}
-a-scene{width:100vw;height:100vh}
 
-/* ── HUD ─────────────────────────────────────────────── */
-#hud{position:fixed;inset:0;z-index:100;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between}
-#top{padding:14px 16px;background:linear-gradient(to bottom,rgba(5,5,8,.8),transparent);display:flex;align-items:center;justify-content:space-between}
+#cam{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+#c3d{position:fixed;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+#qrc{display:none}
+
+/* HUD */
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between}
+#top{padding:14px 16px;background:linear-gradient(to bottom,rgba(5,5,8,.82),transparent);display:flex;align-items:flex-start;justify-content:space-between}
 #logo p:first-child{font-size:9px;color:#e56c78;letter-spacing:.2em;opacity:.85}
 #logo p:last-child{font-size:13px;color:#fff;letter-spacing:.1em;margin-top:3px}
-#back-btn{pointer-events:auto;padding:9px 15px;background:rgba(5,5,8,.9);border:1px solid rgba(229,108,120,.5);color:#e56c78;font-size:10px;font-family:'Press Start 2P',monospace;cursor:pointer;letter-spacing:.05em}
-#bottom{padding:14px 16px 20px;background:linear-gradient(to top,rgba(5,5,8,.7),transparent);text-align:center}
-#scan-msg{font-size:10px;color:rgba(255,255,255,.45);letter-spacing:.1em}
+#back{pointer-events:auto;padding:9px 14px;background:rgba(5,5,8,.9);border:1px solid rgba(229,108,120,.5);color:#e56c78;font-size:9px;font-family:'Press Start 2P',monospace;cursor:pointer}
 
-/* ── Scan frame ──────────────────────────────────────── */
-#scan-frame{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;pointer-events:none;z-index:90}
-.corner{position:absolute;width:22px;height:22px}
+#bottom{padding:14px 16px 20px;background:linear-gradient(to top,rgba(5,5,8,.7),transparent);text-align:center}
+#msg{font-size:10px;color:rgba(255,255,255,.5);letter-spacing:.1em;transition:color .3s}
+#msg.found{color:#50e3b0}
+
+/* Scan frame */
+#frame{position:fixed;top:50%;left:50%;transform:translate(-50%,-60%);width:200px;height:200px;pointer-events:none;z-index:5;transition:opacity .4s}
+.c{position:absolute;width:20px;height:20px}
 .tl{top:0;left:0;border-top:2px solid #e56c78;border-left:2px solid #e56c78}
 .tr{top:0;right:0;border-top:2px solid #e56c78;border-right:2px solid #e56c78}
 .bl{bottom:0;left:0;border-bottom:2px solid #e56c78;border-left:2px solid #e56c78}
 .br{bottom:0;right:0;border-bottom:2px solid #e56c78;border-right:2px solid #e56c78}
-.scan-line{position:absolute;left:4px;right:4px;height:1px;background:linear-gradient(90deg,transparent,#e56c78,transparent);animation:scanY 2s ease-in-out infinite}
-@keyframes scanY{0%{top:4px;opacity:.3}50%{top:188px;opacity:1}100%{top:4px;opacity:.3}}
+.sl{position:absolute;left:4px;right:4px;height:1px;background:linear-gradient(90deg,transparent,#e56c78,transparent);animation:sy 2s ease-in-out infinite}
+@keyframes sy{0%{top:4px;opacity:.3}50%{top:188px;opacity:1}100%{top:4px;opacity:.3}}
 
-/* ── Info panel ──────────────────────────────────────── */
-#panel{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(5,5,8,.97);border-top:1px solid rgba(229,108,120,.4);padding:20px 18px 36px;transform:translateY(100%);transition:transform .32s cubic-bezier(.4,0,.2,1)}
+/* Info panel */
+#panel{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(5,5,8,.97);border-top:1px solid rgba(229,108,120,.4);padding:20px 18px 36px;transform:translateY(100%);transition:transform .3s ease}
 #panel.open{transform:translateY(0)}
-#panel-num{font-size:30px;font-weight:700;opacity:.1;color:#fff;line-height:1;margin-bottom:2px}
-#panel-name{font-size:13px;color:#e56c78;letter-spacing:.12em;margin-bottom:10px}
-#panel-desc{font-size:11px;color:rgba(255,255,255,.65);line-height:1.9;max-height:130px;overflow-y:auto}
-#panel-fact{font-size:10px;color:rgba(229,108,120,.6);margin-top:8px;line-height:1.7}
-#panel-close{position:absolute;top:14px;right:16px;background:transparent;border:none;color:rgba(255,255,255,.35);font-size:22px;cursor:pointer;line-height:1}
+#pnum{font-size:28px;font-weight:700;opacity:.1;color:#fff;line-height:1;margin-bottom:2px}
+#pname{font-size:13px;color:#e56c78;letter-spacing:.12em;margin-bottom:10px}
+#pdesc{font-size:11px;color:rgba(255,255,255,.65);line-height:1.9;max-height:120px;overflow-y:auto}
+#pfact{font-size:10px;color:rgba(229,108,120,.6);margin-top:8px;line-height:1.7}
+#pclose{position:absolute;top:14px;right:16px;background:transparent;border:none;color:rgba(255,255,255,.35);font-size:22px;cursor:pointer;pointer-events:auto}
 
-/* ── Marker intro ────────────────────────────────────── */
-#intro{position:fixed;inset:0;z-index:300;background:rgba(5,5,8,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px;text-align:center}
-#intro h2{font-size:13px;color:#e56c78;letter-spacing:.15em;font-family:'Press Start 2P',monospace;line-height:1.8}
-#intro p{font-size:11px;color:rgba(255,255,255,.45);line-height:2;letter-spacing:.06em;max-width:300px}
-#marker-wrap{padding:10px;background:#fff;display:inline-block}
-#marker-wrap img{width:180px;height:180px;display:block}
-.btn-primary{padding:13px 26px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:11px;font-family:'Press Start 2P',monospace;letter-spacing:.08em}
-.btn-secondary{padding:9px 18px;background:transparent;color:#e56c78;border:1px solid rgba(229,108,120,.4);cursor:pointer;font-size:9px;font-family:'Courier New',monospace;letter-spacing:.1em}
+/* QR indicator */
+#qr-box{position:fixed;z-index:8;border:2px solid rgba(80,227,176,.7);transition:all .1s linear;pointer-events:none;display:none;box-shadow:0 0 14px rgba(80,227,176,.25)}
 </style>
 </head>
 <body>
 
-<!-- ── A-Frame AR scene ─────────────────────────────── -->
-<a-scene
-  arjs="sourceType:webcam; debugUIEnabled:false; patternRatio:0.7; trackingMethod:best;"
-  renderer="antialias:true; alpha:true; precision:medium;"
-  vr-mode-ui="enabled:false"
-  embedded
-  loading-screen="dotsColor:#e56c78; backgroundColor:#050508"
->
-  <a-marker
-    preset="hiro"
-    id="marker"
-    smooth="true"
-    smoothCount="8"
-    smoothTolerance="0.01"
-    smoothThreshold="2"
-    emitevents="true"
-  >
-    <a-entity id="brain-root" brain-ar position="0 0.1 0" scale="0.09 0.09 0.09"></a-entity>
-  </a-marker>
-  <a-entity camera></a-entity>
-</a-scene>
+<video id="cam" autoplay playsinline muted></video>
+<canvas id="c3d"></canvas>
+<canvas id="qrc"></canvas>
 
-<!-- ── Scan frame ──────────────────────────────────── -->
-<div id="scan-frame">
-  <div class="corner tl"></div>
-  <div class="corner tr"></div>
-  <div class="corner bl"></div>
-  <div class="corner br"></div>
-  <div class="scan-line"></div>
+<div id="frame">
+  <div class="c tl"></div><div class="c tr"></div>
+  <div class="c bl"></div><div class="c br"></div>
+  <div class="sl"></div>
 </div>
 
-<!-- ── HUD ─────────────────────────────────────────── -->
+<div id="qr-box"></div>
+
 <div id="hud">
   <div id="top">
     <div id="logo">
       <p>// MODO AR</p>
       <p>NEUROEXPLORA</p>
     </div>
-    <button id="back-btn" onclick="goBack()">× SALIR</button>
+    <button id="back" onclick="goBack()">× SALIR</button>
   </div>
   <div id="bottom">
-    <p id="scan-msg">APUNTA AL MARCADOR PARA PROYECTAR EL CEREBRO</p>
+    <p id="msg">APUNTA A CUALQUIER CÓDIGO QR</p>
   </div>
 </div>
 
-<!-- ── Info panel ──────────────────────────────────── -->
 <div id="panel">
-  <button id="panel-close" onclick="closePanel()">×</button>
-  <div id="panel-num">01</div>
-  <div id="panel-name">REGIÓN</div>
-  <div id="panel-desc"></div>
-  <div id="panel-fact"></div>
-</div>
-
-<!-- ── Marker intro ────────────────────────────────── -->
-<div id="intro">
-  <h2>MARCADOR AR</h2>
-  <p>Apunta la cámara a este marcador para proyectar el cerebro 3D sobre él.</p>
-  <div id="marker-wrap">
-    <img src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.5/data/images/HIRO.jpg" alt="Marcador Hiro">
-  </div>
-  <p style="font-size:10px;opacity:.4">Muestra esta imagen en otra pantalla o imprímela.</p>
-  <button class="btn-primary" onclick="startAR()">YA TENGO EL MARCADOR</button>
-  <button class="btn-secondary" onclick="window.open('https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.5/data/images/HIRO.jpg')">
-    DESCARGAR MARCADOR
-  </button>
+  <button id="pclose" onclick="closePanel()">×</button>
+  <div id="pnum">01</div>
+  <div id="pname">REGIÓN</div>
+  <div id="pdesc"></div>
+  <div id="pfact"></div>
 </div>
 
 <script>
-// ── Brain regions data ────────────────────────────────────────────────────
-const REGIONS = [
-  {
-    name:'Lóbulo Frontal', hex:0x4d88ff,
-    pos:[0.62,0.12,0.32], shape:[0.82,0.60,0.75,0.08],
-    desc:'Centro del razonamiento complejo, la planificación y la toma de decisiones. Alberga la corteza motora primaria que controla los movimientos voluntarios.',
-    fn:'Representa el 41% del neocórtex humano y es la región que más ha crecido durante la evolución.',
-  },
-  {
-    name:'Lóbulo Parietal', hex:0x44dd88,
-    pos:[0,0.55,0], shape:[0.65,0.50,0.55,0.07],
-    desc:'Procesa la información sensorial del cuerpo: tacto, temperatura, dolor y presión. Integra señales para orientar el cuerpo en el espacio.',
-    fn:'Contiene el homúnculo de Penfield, un mapa del cuerpo donde la mano ocupa más espacio que el tronco.',
-  },
-  {
-    name:'Lóbulo Temporal', hex:0xbb55ff,
-    pos:[-0.65,0,-0.1], shape:[0.55,0.45,0.60,0.06],
-    desc:'Esencial para la audición, la comprensión del lenguaje hablado y la formación de nuevas memorias. Contiene el hipocampo.',
-    fn:'El área de Wernicke, ubicada aquí, permite comprender el lenguaje hablado.',
-  },
-  {
-    name:'Lóbulo Occipital', hex:0xffcc33,
-    pos:[0,-0.08,-0.68], shape:[0.45,0.40,0.52,0.06],
-    desc:'Principal centro de procesamiento visual del cerebro. Interpreta la información enviada por la retina: formas, colores, movimiento y profundidad.',
-    fn:'Una lesión aquí puede causar ceguera cortical aunque los ojos funcionen perfectamente.',
-  },
-  {
-    name:'Cerebelo', hex:0xff7733,
-    pos:[0,-0.52,-0.38], shape:[0.72,0.58,0.65,0.08],
-    desc:'Coordina los movimientos voluntarios y mantiene el equilibrio y la postura corporal. Permite automatizar habilidades como caminar o escribir.',
-    fn:'Aunque representa solo el 10% del volumen, contiene más del 50% de todas las neuronas del cerebro.',
-  },
-  {
-    name:'Tronco Encefálico', hex:0xff4477,
-    pos:[0,-0.32,0.12], shape:[0.38,0.55,0.38,0.07],
-    desc:'Conecta el cerebro con la médula espinal y controla las funciones vitales automáticas: respiración, ritmo cardíaco y presión arterial.',
-    fn:'Es la estructura evolutivamente más antigua del cerebro, presente en vertebrados desde hace más de 500 millones de años.',
-  },
+// ── Regions data ─────────────────────────────────────────────────────────
+const REGIONS=[
+  {name:'Lóbulo Frontal',   hex:0x4d88ff, pos:[0.62,0.12,0.32],  shape:[0.82,0.60,0.75,0.08],
+   desc:'Centro del razonamiento complejo, la planificación y la toma de decisiones. Alberga la corteza motora primaria que controla los movimientos voluntarios.',
+   fn:'Representa el 41% del neocórtex humano y es la región que más ha crecido durante la evolución.'},
+  {name:'Lóbulo Parietal',  hex:0x44dd88, pos:[0,0.55,0],         shape:[0.65,0.50,0.55,0.07],
+   desc:'Procesa la información sensorial del cuerpo: tacto, temperatura, dolor y presión. Integra señales para orientar el cuerpo en el espacio.',
+   fn:'Contiene el homúnculo de Penfield, un mapa del cuerpo donde la mano ocupa más espacio que el tronco.'},
+  {name:'Lóbulo Temporal',  hex:0xbb55ff, pos:[-0.65,0,-0.1],     shape:[0.55,0.45,0.60,0.06],
+   desc:'Esencial para la audición, la comprensión del lenguaje hablado y la formación de nuevas memorias. Contiene el hipocampo.',
+   fn:'El área de Wernicke, ubicada aquí, permite comprender el lenguaje hablado. Su daño causa afasia receptiva.'},
+  {name:'Lóbulo Occipital', hex:0xffcc33, pos:[0,-0.08,-0.68],    shape:[0.45,0.40,0.52,0.06],
+   desc:'Principal centro de procesamiento visual. Interpreta la información enviada por la retina: formas, colores, movimiento y profundidad.',
+   fn:'Una lesión aquí puede causar ceguera cortical aunque los ojos funcionen perfectamente.'},
+  {name:'Cerebelo',         hex:0xff7733, pos:[0,-0.52,-0.38],     shape:[0.72,0.58,0.65,0.08],
+   desc:'Coordina los movimientos voluntarios y mantiene el equilibrio y la postura corporal. Permite automatizar habilidades como caminar o escribir.',
+   fn:'Aunque representa solo el 10% del volumen cerebral, contiene más del 50% de todas las neuronas.'},
+  {name:'Tronco Encefálico',hex:0xff4477, pos:[0,-0.32,0.12],      shape:[0.38,0.55,0.38,0.07],
+   desc:'Conecta el cerebro con la médula espinal y controla funciones vitales automáticas: respiración, ritmo cardíaco y presión arterial.',
+   fn:'Es la estructura evolutivamente más antigua del cerebro, presente en vertebrados desde hace más de 500 millones de años.'},
 ];
 
-// ── A-Frame component: brain geometry ────────────────────────────────────
-AFRAME.registerComponent('brain-ar', {
-  init() {
-    const THREE = AFRAME.THREE;
+// ── Three.js setup ────────────────────────────────────────────────────────
+const canvas=document.getElementById('c3d');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setClearColor(0x000000,0);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
 
-    function mkSphere(rx,ry,rz,na) {
-      const geo = new THREE.SphereBufferGeometry(1, 26, 18);
-      const pos = geo.attributes.position;
-      for(let i=0;i<pos.count;i++){
-        const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
-        const n=(Math.sin(x*4.7+y*3.1)*Math.cos(y*2.3-z*3.7)+Math.sin(z*5.1))*na;
-        pos.setXYZ(i,x*rx+n,y*ry+n,z*rz+n);
-      }
-      pos.needsUpdate=true;
-      geo.computeVertexNormals();
-      return geo;
-    }
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(60,1,0.01,50);
+camera.position.set(0,0,0);
 
-    const group = new THREE.Group();
-    this.meshes = [];
+scene.add(new THREE.AmbientLight(0xffffff,0.6));
+const d1=new THREE.DirectionalLight(0xffffff,1.1); d1.position.set(2,3,4); scene.add(d1);
+const d2=new THREE.DirectionalLight(0x8899ff,0.3); d2.position.set(-2,-1,-2); scene.add(d2);
+const pt=new THREE.PointLight(0xffffff,0.5,20); scene.add(pt);
 
-    REGIONS.forEach((r,i)=>{
-      const [rx,ry,rz,na]=r.shape;
-      const mat = new THREE.MeshPhongMaterial({color:r.hex,transparent:true,opacity:0.88,shininess:50,specular:0x222222});
-      const mesh = new THREE.Mesh(mkSphere(rx,ry,rz,na), mat);
-      mesh.position.set(...r.pos);
-      mesh.userData.regionIndex = i;
-      group.add(mesh);
-      this.meshes.push(mesh);
-    });
-
-    // Wireframe overlay
-    const wGeo = new THREE.BufferGeometry();
-    const verts = [];
-    this.meshes.forEach(m=>{
-      const p=m.geometry.attributes.position;
-      for(let i=0;i<p.count;i++){
-        verts.push(p.getX(i)+m.position.x, p.getY(i)+m.position.y, p.getZ(i)+m.position.z);
-      }
-    });
-    wGeo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
-    wGeo.computeVertexNormals();
-    group.add(new THREE.Mesh(wGeo,new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.06})));
-
-    group.add(new THREE.AmbientLight(0xffffff,0.65));
-    const dir=new THREE.DirectionalLight(0xffffff,1.1); dir.position.set(2,3,4); group.add(dir);
-    const dir2=new THREE.DirectionalLight(0x8899ff,0.3); dir2.position.set(-2,-1,-2); group.add(dir2);
-
-    this.el.setObject3D('brain', group);
-    this.group = group;
-    this.t = 0;
-  },
-
-  tick(time, dt) {
-    this.t += dt * 0.0008;
-    if(this.group) this.group.rotation.y = this.t;
+// ── Brain geometry ────────────────────────────────────────────────────────
+function mkSphere(rx,ry,rz,na){
+  const geo=new THREE.SphereBufferGeometry(1,26,18);
+  const pos=geo.attributes.position;
+  for(let i=0;i<pos.count;i++){
+    const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i);
+    const n=(Math.sin(x*4.7+y*3.1)*Math.cos(y*2.3-z*3.7)+Math.sin(z*5.1))*na;
+    pos.setXYZ(i,x*rx+n,y*ry+n,z*rz+n);
   }
+  pos.needsUpdate=true; geo.computeVertexNormals(); return geo;
+}
+
+const brainGroup=new THREE.Group();
+const regionMeshes=[];
+
+REGIONS.forEach((r,i)=>{
+  const [rx,ry,rz,na]=r.shape;
+  const mat=new THREE.MeshPhongMaterial({color:r.hex,transparent:true,opacity:0.9,shininess:50});
+  const mesh=new THREE.Mesh(mkSphere(rx,ry,rz,na),mat);
+  mesh.position.set(...r.pos);
+  mesh.userData.ri=i;
+  brainGroup.add(mesh);
+  regionMeshes.push(mesh);
 });
-
-// ── Marker events ─────────────────────────────────────────────────────────
-let markerVisible = false;
-
-document.getElementById('marker').addEventListener('markerFound', ()=>{
-  markerVisible = true;
-  document.getElementById('scan-frame').style.display = 'none';
-  document.getElementById('scan-msg').textContent = 'TOCA UNA REGIÓN DEL CEREBRO';
+const wVerts=[];
+regionMeshes.forEach(m=>{
+  const p=m.geometry.attributes.position;
+  for(let i=0;i<p.count;i++) wVerts.push(p.getX(i)+m.position.x,p.getY(i)+m.position.y,p.getZ(i)+m.position.z);
 });
+const wGeo=new THREE.BufferGeometry();
+wGeo.setAttribute('position',new THREE.Float32BufferAttribute(wVerts,3));
+brainGroup.add(new THREE.Mesh(wGeo,new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.06})));
 
-document.getElementById('marker').addEventListener('markerLost', ()=>{
-  markerVisible = false;
-  closePanel();
-  document.getElementById('scan-frame').style.display = 'block';
-  document.getElementById('scan-msg').textContent = 'APUNTA AL MARCADOR PARA PROYECTAR EL CEREBRO';
-});
+brainGroup.visible=false;
+scene.add(brainGroup);
 
-// ── Tap to select regions ─────────────────────────────────────────────────
-document.addEventListener('click', e=>{
-  if(!markerVisible) return;
-  if(e.target.closest('#panel')||e.target.closest('#hud')||e.target.closest('#intro')) return;
+// ── Resize ────────────────────────────────────────────────────────────────
+function resize(){
+  const W=window.innerWidth, H=window.innerHeight;
+  renderer.setSize(W,H);
+  camera.aspect=W/H;
+  camera.updateProjectionMatrix();
+}
+resize();
+window.addEventListener('resize',resize);
 
-  const sceneEl = document.querySelector('a-scene');
-  if(!sceneEl.camera) return;
+// ── Camera feed ───────────────────────────────────────────────────────────
+const video=document.getElementById('cam');
+const qrc=document.getElementById('qrc');
+const qctx=qrc.getContext('2d',{willReadFrequently:true});
 
-  const THREE = AFRAME.THREE;
-  const nx = (e.clientX/window.innerWidth)*2-1;
-  const ny = -(e.clientY/window.innerHeight)*2+1;
+navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false})
+  .then(s=>{video.srcObject=s;video.play();})
+  .catch(()=>document.getElementById('msg').textContent='ERROR: PERMISO DE CÁMARA DENEGADO');
 
-  const ray = new THREE.Raycaster();
-  ray.setFromCamera(new THREE.Vector2(nx,ny), sceneEl.camera);
+// ── Pose estimation from QR corners ──────────────────────────────────────
+// We assume QR is ~8cm wide in real world
+const QR_REAL = 0.08;
+// Assume rear camera vertical FOV ~60°
+const CAM_FOV_Y = 60 * Math.PI/180;
 
-  const brainObj = document.getElementById('brain-root').getObject3D('brain');
-  if(!brainObj) return;
+let smoothX=0, smoothY=0, smoothZ=-1, smoothS=0.08;
+let brainRot=0;
+let lastQR=0;
+let panelOpen=false;
+const raycaster=new THREE.Raycaster();
+const qrBox=document.getElementById('qr-box');
+const msgEl=document.getElementById('msg');
+const frameEl=document.getElementById('frame');
 
-  const meshes = [];
-  brainObj.traverse(o=>{ if(o.isMesh && !o.material.wireframe) meshes.push(o); });
+function estimatePose(loc, vw, vh){
+  // focal length in pixels (from vertical FOV)
+  const fy = (vh/2) / Math.tan(CAM_FOV_Y/2);
+  const fx = fy; // assume square pixels
 
-  // Need world-space raycasting — get the marker's world matrix
-  const hits = ray.intersectObjects(meshes, false);
+  // QR corners from jsQR (topLeftCorner, topRightCorner, bottomRightCorner, bottomLeftCorner)
+  const pts=[loc.topLeftCorner,loc.topRightCorner,loc.bottomRightCorner,loc.bottomLeftCorner];
+
+  // Center in image pixels
+  const cx=(pts[0].x+pts[1].x+pts[2].x+pts[3].x)/4;
+  const cy=(pts[0].y+pts[1].y+pts[2].y+pts[3].y)/4;
+
+  // Average side length in pixels
+  const sides=[
+    dist(pts[0],pts[1]),dist(pts[1],pts[2]),
+    dist(pts[2],pts[3]),dist(pts[3],pts[0])
+  ];
+  const avgPx=(sides[0]+sides[2])/2;
+
+  // Depth estimate
+  const depth = (fy * QR_REAL) / Math.max(avgPx, 1);
+
+  // 3D position (camera space: x right, y up, z toward viewer → -z forward)
+  const x3 = (cx - vw/2) / fx * depth;
+  const y3 = -(cy - vh/2) / fy * depth;
+  const z3 = -depth;
+
+  // Rotation from top-edge vector
+  const ex=pts[1].x-pts[0].x, ey=pts[1].y-pts[0].y;
+  const roll=-Math.atan2(ey,ex);
+
+  return {x:x3, y:y3, z:z3, roll, depth, pxSize:avgPx, cx, cy};
+}
+
+function dist(a,b){return Math.sqrt((b.x-a.x)**2+(b.y-a.y)**2)}
+
+// ── QR scan loop ──────────────────────────────────────────────────────────
+let frameSkip=0;
+function scanQR(){
+  if(video.readyState!==video.HAVE_ENOUGH_DATA) return;
+  const vw=video.videoWidth, vh=video.videoHeight;
+  if(!vw||!vh) return;
+
+  // Scan every 3 frames for performance
+  frameSkip=(frameSkip+1)%3;
+  if(frameSkip!==0) return;
+
+  qrc.width=vw; qrc.height=vh;
+  qctx.drawImage(video,0,0,vw,vh);
+  const img=qctx.getImageData(0,0,vw,vh);
+  const code=jsQR(img.data,vw,vh,{inversionAttempts:'dontInvert'});
+
+  if(code){
+    lastQR=performance.now();
+    const pose=estimatePose(code.location,vw,vh);
+    // Lerp for smooth tracking
+    const k=0.18;
+    smoothX+=(pose.x-smoothX)*k;
+    smoothY+=(pose.y-smoothY)*k;
+    smoothZ+=(pose.z-smoothZ)*k;
+
+    // Scale: brain occupies ~4× the QR real size
+    const targetS=QR_REAL*4;
+    smoothS+=(targetS-smoothS)*k;
+
+    brainGroup.position.set(smoothX, smoothY+smoothS*0.3, smoothZ);
+    brainGroup.scale.setScalar(smoothS);
+    brainGroup.rotation.z=pose.roll;
+    brainGroup.visible=true;
+    pt.position.set(smoothX,smoothY+1,smoothZ+1);
+
+    // Show green box around QR in screen space
+    const scW=window.innerWidth, scH=window.innerHeight;
+    const loc=code.location;
+    const mapX=x=>x/vw*scW, mapY=y=>y/vh*scH;
+    const xs=[loc.topLeftCorner.x,loc.topRightCorner.x,loc.bottomRightCorner.x,loc.bottomLeftCorner.x];
+    const ys=[loc.topLeftCorner.y,loc.topRightCorner.y,loc.bottomRightCorner.y,loc.bottomLeftCorner.y];
+    const bx=mapX(Math.min(...xs)), by=mapY(Math.min(...ys));
+    const bw=mapX(Math.max(...xs))-bx, bh=mapY(Math.max(...ys))-by;
+    qrBox.style.cssText=`position:fixed;z-index:8;pointer-events:none;border:2px solid rgba(80,227,176,.8);box-shadow:0 0 12px rgba(80,227,176,.3);left:${bx}px;top:${by}px;width:${bw}px;height:${bh}px;display:block`;
+
+    frameEl.style.opacity='0';
+    msgEl.textContent='QR DETECTADO · TOCA UNA REGIÓN';
+    msgEl.className='found';
+  } else if(performance.now()-lastQR>800){
+    brainGroup.visible=false;
+    qrBox.style.display='none';
+    frameEl.style.opacity='1';
+    msgEl.textContent='APUNTA A CUALQUIER CÓDIGO QR';
+    msgEl.className='';
+  }
+}
+
+// ── Render loop ───────────────────────────────────────────────────────────
+let t=0;
+function animate(){
+  requestAnimationFrame(animate);
+  t+=0.016;
+  if(brainGroup.visible) brainGroup.rotation.y+=0.008;
+  pt.position.x=Math.sin(t*0.5)*0.3+smoothX;
+  scanQR();
+  renderer.render(scene,camera);
+}
+animate();
+
+// ── Tap to select region ──────────────────────────────────────────────────
+canvas.style.pointerEvents='auto';
+canvas.addEventListener('click',e=>{
+  if(!brainGroup.visible) return;
+  const nx=(e.clientX/window.innerWidth)*2-1;
+  const ny=-(e.clientY/window.innerHeight)*2+1;
+  raycaster.setFromCamera(new THREE.Vector2(nx,ny),camera);
+  const hits=raycaster.intersectObjects(regionMeshes,false);
   if(hits.length>0){
-    const idx = hits[0].object.userData.regionIndex;
+    const idx=hits[0].object.userData.ri;
     if(idx!==undefined) openPanel(idx);
   }
 });
 
-function openPanel(idx){
-  const r = REGIONS[idx];
-  document.getElementById('panel-num').textContent = String(idx+1).padStart(2,'0');
-  document.getElementById('panel-name').textContent = r.name;
-  document.getElementById('panel-desc').textContent = r.desc;
-  document.getElementById('panel-fact').innerHTML = '★ ' + r.fn;
+function openPanel(i){
+  const r=REGIONS[i];
+  document.getElementById('pnum').textContent=String(i+1).padStart(2,'0');
+  document.getElementById('pname').textContent=r.name;
+  document.getElementById('pdesc').textContent=r.desc;
+  document.getElementById('pfact').textContent='★ '+r.fn;
   document.getElementById('panel').classList.add('open');
+  panelOpen=true;
 }
-
 function closePanel(){
   document.getElementById('panel').classList.remove('open');
+  panelOpen=false;
 }
-
-function startAR(){
-  document.getElementById('intro').style.display='none';
-}
-
 function goBack(){
-  if(window.parent!==window){
-    window.parent.postMessage({type:'arExit'},'*');
-  } else {
-    window.history.back();
-  }
+  video.srcObject?.getTracks().forEach(t=>t.stop());
+  if(window.parent!==window) window.parent.postMessage({type:'arExit'},'*');
+  else window.history.back();
 }
 </script>
 </body>
