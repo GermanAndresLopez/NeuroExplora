@@ -21,11 +21,9 @@ export default function InicioView({ onNavigate }) {
   const [tutorialModal,  setTutorialModal]  = useState(false)
   const [showRanking,    setShowRanking]    = useState(false)
 
-  // Listen for region views via BroadcastChannel (primary) and postMessage (fallback)
+  // Listen for region views — three channels for maximum compatibility
   useEffect(() => {
-    function handleRegion(data) {
-      if (data?.type !== 'regionViewed') return
-      const idx = data.index
+    function markRegion(idx) {
       if (typeof idx !== 'number') return
       setViewedRegions(prev => {
         if (prev.has(idx)) return prev
@@ -35,18 +33,31 @@ export default function InicioView({ onNavigate }) {
       })
     }
 
-    // BroadcastChannel — most reliable for same-origin iframe ↔ parent
+    // 1. localStorage storage event — most reliable for same-origin iframe → parent
+    function onStorage(e) {
+      if (e.key !== 'ne_viewed') return
+      try {
+        const arr = JSON.parse(e.newValue || '[]')
+        setViewedRegions(new Set(arr))
+      } catch {}
+    }
+    window.addEventListener('storage', onStorage)
+
+    // 2. BroadcastChannel
     let bc = null
     try {
       bc = new BroadcastChannel('ne_brain')
-      bc.onmessage = (e) => handleRegion(e.data)
+      bc.onmessage = (e) => markRegion(e.data?.index)
     } catch {}
 
-    // postMessage fallback
-    const onMessage = (e) => handleRegion(e.data)
+    // 3. postMessage fallback
+    function onMessage(e) {
+      if (e.data?.type === 'regionViewed') markRegion(e.data.index)
+    }
     window.addEventListener('message', onMessage)
 
     return () => {
+      window.removeEventListener('storage', onStorage)
       bc?.close()
       window.removeEventListener('message', onMessage)
     }
@@ -62,6 +73,7 @@ export default function InicioView({ onNavigate }) {
   // Reset state when returning to main menu
   useEffect(() => {
     if (experience === null) {
+      localStorage.removeItem('ne_viewed')
       setViewedRegions(new Set())
       setCompleteModal(false)
       setTutorialModal(false)
@@ -78,6 +90,7 @@ export default function InicioView({ onNavigate }) {
 
   function handlePick3D() {
     playSelect()
+    localStorage.removeItem('ne_viewed')   // reset for new session
     setExperience('3d')
     setTutorialModal(true)
   }

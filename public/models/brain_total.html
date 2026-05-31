@@ -211,9 +211,13 @@ function selectRegion(i){
   panel.style.borderColor=r.hex+'33';
   panel.style.boxShadow=`0 0 30px ${r.hex}22`;
   panel.style.display='block';
-  // Dual-channel: BroadcastChannel (reliable same-origin) + postMessage fallback
-  try { new BroadcastChannel('ne_brain').postMessage({ type: 'regionViewed', index: i, name: r.name }); } catch(e) {}
-  window.parent?.postMessage({ type: 'regionViewed', index: i, name: r.name }, '*');
+  // Notify parent: localStorage storage event (most reliable cross-frame), BroadcastChannel, postMessage
+  try {
+    const v=JSON.parse(localStorage.getItem('ne_viewed')||'[]');
+    if(!v.includes(i)){v.push(i);localStorage.setItem('ne_viewed',JSON.stringify(v));}
+  } catch(e){}
+  try{new BroadcastChannel('ne_brain').postMessage({type:'regionViewed',index:i,name:r.name});}catch(e){}
+  window.parent?.postMessage({type:'regionViewed',index:i,name:r.name},'*');
 }
 
 function deselectAll(){
