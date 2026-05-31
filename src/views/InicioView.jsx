@@ -3,6 +3,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { playClick, playSelect, playBack, playSuccess } from '../hooks/useSound.js'
 import QuizGame from '../components/games/QuizGame.jsx'
 import { saveScore } from '../hooks/useScores.js'
+import { getLeaderboard } from '../lib/leaderboard.js'
 
 const ARSceneXR = lazy(() => import('../components/ARSceneXR.jsx'))
 
@@ -18,6 +19,7 @@ export default function InicioView({ onNavigate }) {
   const [viewedRegions,  setViewedRegions]  = useState(new Set())
   const [completeModal,  setCompleteModal]  = useState(false)
   const [tutorialModal,  setTutorialModal]  = useState(false)
+  const [showRanking,    setShowRanking]    = useState(false)
 
   // Listen for postMessage from the brain iframe
   useEffect(() => {
@@ -52,10 +54,11 @@ export default function InicioView({ onNavigate }) {
     }
   }, [experience])
 
-  function handleExplore()  { playSelect(); setExperience('selector') }
-  function handleJuegos()   { playClick();  onNavigate('juegos') }
-  function handleConfig()   { playClick();  onNavigate('config') }
-  function handleCancel()   { playBack();   setExperience(null) }
+  function handleExplore()   { playSelect(); setExperience('selector') }
+  function handleJuegos()    { playClick();  onNavigate('juegos') }
+  function handleConfig()    { playClick();  onNavigate('config') }
+  function handleRanking()   { playSelect(); setShowRanking(true) }
+  function handleCancel()    { playBack();   setExperience(null) }
   function handlePickAR()   { playSelect(); setExperience('ar') }
   function handleExitAR()   { playBack();   setExperience(null) }
 
@@ -190,10 +193,11 @@ export default function InicioView({ onNavigate }) {
         </div>
 
         {/* ── MENU BUTTONS ── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: '100%', maxWidth: 320 }}>
-          <PixelBtn primary onClick={handleExplore}>  &gt; EXPLORAR  </PixelBtn>
-          <PixelBtn         onClick={handleJuegos}>   &gt; JUEGOS    </PixelBtn>
-          <PixelBtn         onClick={handleConfig}>   &gt; CONFIGURAR</PixelBtn>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%', maxWidth: 320 }}>
+          <PixelBtn primary onClick={handleExplore}>   &gt; EXPLORAR     </PixelBtn>
+          <PixelBtn         onClick={handleJuegos}>    &gt; JUEGOS       </PixelBtn>
+          <PixelBtn         onClick={handleRanking}>   &gt; CLASIFICACIÓN</PixelBtn>
+          <PixelBtn         onClick={handleConfig}>    &gt; CONFIGURAR   </PixelBtn>
         </div>
 
         {/* ── FOOTER ── */}
@@ -223,6 +227,10 @@ export default function InicioView({ onNavigate }) {
           onPickAR={handlePickAR}
           onCancel={handleCancel}
         />
+      )}
+
+      {showRanking && (
+        <RankingModal onClose={() => { playBack(); setShowRanking(false) }} />
       )}
     </div>
   )
@@ -340,6 +348,109 @@ function Step({ n, text }) {
         fontFamily: "'Courier New', monospace",
         lineHeight: 1.9,
       }}>{text}</p>
+    </div>
+  )
+}
+
+// ── Ranking modal ─────────────────────────────────────────────────────────
+function RankingModal({ onClose }) {
+  const [board,   setBoard]   = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    getLeaderboard().then(data => { setBoard(data); setLoading(false) })
+  }, [])
+
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, zIndex: 60,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(5,5,8,0.88)',
+    }}>
+      <div style={{
+        width: '92%', maxWidth: 380,
+        maxHeight: '85vh',
+        background: 'var(--surface)',
+        border: '1px solid var(--accent-border)',
+        display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '16px 18px 12px',
+          borderBottom: '1px solid var(--accent-border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
+        }}>
+          <div>
+            <p style={{ fontSize: '0.5rem', color: 'var(--accent)', letterSpacing: '0.2em', opacity: 0.75, marginBottom: 4 }}>
+              // CLASIFICACIÓN GLOBAL
+            </p>
+            <h2 style={{ fontSize: '0.85rem', color: '#fff', letterSpacing: '0.1em' }}>RANKING</h2>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'transparent', border: '1px solid var(--accent-border)',
+              color: 'var(--accent)', fontSize: '0.7rem', cursor: 'pointer',
+              padding: '8px 12px', fontFamily: "'Press Start 2P', monospace",
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* List */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {loading ? (
+            <p style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textAlign: 'center', padding: '24px 0', fontFamily: "'Courier New', monospace" }}>
+              CARGANDO...
+            </p>
+          ) : board.length === 0 ? (
+            <p style={{ fontSize: '0.6rem', color: 'var(--text-dim)', textAlign: 'center', padding: '24px 0', fontFamily: "'Courier New', monospace", lineHeight: 2 }}>
+              Sin puntuaciones aún.<br />
+              <span style={{ color: 'rgba(229,108,120,0.4)' }}>Completa el quiz para aparecer aquí.</span>
+            </p>
+          ) : board.map((entry, i) => (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 12px',
+              background: i < 3 ? 'rgba(229,108,120,0.07)' : 'var(--bg)',
+              border: `1px solid ${i < 3 ? 'var(--accent-border)' : 'rgba(229,108,120,0.1)'}`,
+            }}>
+              <span style={{ fontSize: i < 3 ? '1.1rem' : '0.6rem', width: 26, textAlign: 'center', flexShrink: 0, color: 'var(--text-dim)', fontFamily: "'Courier New', monospace" }}>
+                {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`}
+              </span>
+              <span style={{ flex: 1, fontSize: '0.7rem', color: '#fff', letterSpacing: '0.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {entry.name}
+              </span>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--accent)', fontFamily: "'Courier New', monospace", fontWeight: 'bold' }}>
+                  {entry.score}
+                </span>
+                <span style={{ fontSize: '0.55rem', color: 'var(--text-dim)', fontFamily: "'Courier New', monospace" }}>
+                  /{entry.total}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '12px 14px', borderTop: '1px solid var(--accent-border)', flexShrink: 0 }}>
+          <button
+            onClick={onClose}
+            className="pixel-btn"
+            style={{
+              width: '100%', padding: '13px', fontSize: '0.75rem',
+              background: 'transparent', color: 'var(--accent)',
+              border: '1px solid var(--accent-border)',
+            }}
+          >
+            ← VOLVER AL MENÚ
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
