@@ -79,11 +79,12 @@ export default function InicioView({ onNavigate }) {
     return () => clearInterval(id)
   }, [experience])
 
-  // Show completion modal when all regions seen
+  // Show completion modal when all regions seen (10s delay to let user finish reading)
   useEffect(() => {
     if (experience !== '3d' || viewedRegions.size < TOTAL_REGIONS) return
     playSuccess()
-    setCompleteModal(true)
+    const id = setTimeout(() => setCompleteModal(true), 10000)
+    return () => clearTimeout(id)
   }, [viewedRegions, experience])
 
   // Reset state when returning to main menu

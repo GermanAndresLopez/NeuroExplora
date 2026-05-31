@@ -20,13 +20,13 @@ export function startAmbient() {
       master.gain.linearRampToValueAtTime(0.10, ac.currentTime + 3)
       master.connect(ac.destination)
 
-      // Pad chord: A minor drone with slight detuning for richness
+      // Pad chord: A minor drone, octave higher for phone speaker audibility
       const layers = [
-        { freq: 110.0, detune:  0 },
-        { freq: 110.3, detune:  3 },
-        { freq: 165.0, detune: -2 },
-        { freq: 220.0, detune:  1 },
-        { freq: 130.8, detune:  0 },
+        { freq: 220.0, detune:  0 },
+        { freq: 220.5, detune:  0 },
+        { freq: 329.6, detune: -2 },
+        { freq: 440.0, detune:  1 },
+        { freq: 261.6, detune:  0 },
       ]
       const oscs = layers.map(({ freq, detune }) => {
         const osc = ac.createOscillator()
@@ -76,6 +76,7 @@ export function stopAmbient() {
 }
 
 function tone(freq, dur, type = 'square', vol = 0.06, delayMs = 0) {
+  startAmbient()
   try {
     const ac   = ctx()
     const t0   = ac.currentTime + delayMs / 1000
