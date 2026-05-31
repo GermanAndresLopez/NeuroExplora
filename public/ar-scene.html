@@ -2,26 +2,25 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>NeuroExplora AR</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-<script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar-threex-minified.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
+<script src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-html,body{width:100%;height:100%;overflow:hidden;background:#000}
+body{overflow:hidden}
+a-scene{position:fixed;top:0;left:0;width:100%;height:100%}
 
-/* HUD sobre la escena AR */
-#hud{position:fixed;inset:0;z-index:10;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between}
-#top{padding:14px 16px;background:linear-gradient(to bottom,rgba(5,5,8,.82),transparent);display:flex;justify-content:space-between;align-items:flex-start}
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;font-family:'Press Start 2P',monospace}
+#top{padding:14px 16px;background:linear-gradient(to bottom,rgba(5,5,8,.85),transparent);display:flex;justify-content:space-between;align-items:flex-start}
 #logo p:first-child{font-size:9px;color:#e56c78;letter-spacing:.2em;opacity:.85}
 #logo p:last-child{font-size:13px;color:#fff;letter-spacing:.1em;margin-top:3px}
-#back-btn{pointer-events:auto;padding:9px 14px;background:rgba(5,5,8,.9);border:1px solid rgba(229,108,120,.5);color:#e56c78;font-size:9px;font-family:'Press Start 2P',monospace;cursor:pointer}
-#bottom{padding:14px 16px 22px;background:linear-gradient(to top,rgba(5,5,8,.72),transparent);text-align:center}
+#back-btn{pointer-events:auto;padding:9px 14px;background:rgba(5,5,8,.9);border:1px solid rgba(229,108,120,.5);color:#e56c78;font-size:9px;cursor:pointer}
+#bottom{padding:14px 16px 22px;background:linear-gradient(to top,rgba(5,5,8,.75),transparent);text-align:center}
 #msg{font-size:10px;color:rgba(255,255,255,.5);letter-spacing:.08em;line-height:1.7}
 #msg.found{color:#50e3b0}
 
-/* Marco de escaneo */
 #frame{position:fixed;top:50%;left:50%;transform:translate(-50%,-58%);width:190px;height:190px;pointer-events:none;z-index:9;transition:opacity .4s}
 .co{position:absolute;width:20px;height:20px}
 .tl{top:0;left:0;border-top:2px solid #e56c78;border-left:2px solid #e56c78}
@@ -31,27 +30,109 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 .sl{position:absolute;left:4px;right:4px;height:1px;background:linear-gradient(90deg,transparent,#e56c78,transparent);animation:sy 2s ease-in-out infinite}
 @keyframes sy{0%{top:4px;opacity:.3}50%{top:178px;opacity:1}100%{top:4px;opacity:.3}}
 
-/* Panel info */
-#panel{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(5,5,8,.97);border-top:1px solid rgba(229,108,120,.4);padding:20px 18px 36px;transform:translateY(100%);transition:transform .3s ease}
+#panel{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(5,5,8,.97);border-top:1px solid rgba(229,108,120,.4);padding:20px 18px 36px;transform:translateY(100%);transition:transform .3s ease;font-family:'Press Start 2P',monospace}
 #panel.open{transform:translateY(0)}
-#p-num{font-size:26px;font-weight:700;opacity:.1;color:#fff;line-height:1;margin-bottom:2px}
+#p-num{font-size:26px;font-weight:700;opacity:.1;color:#fff;line-height:1;margin-bottom:2px;font-family:monospace}
 #p-name{font-size:13px;color:#e56c78;letter-spacing:.12em;margin-bottom:10px}
-#p-desc{font-size:11px;color:rgba(255,255,255,.65);line-height:1.9;max-height:120px;overflow-y:auto}
-#p-fact{font-size:10px;color:rgba(229,108,120,.55);margin-top:8px;line-height:1.7}
+#p-desc{font-size:11px;color:rgba(255,255,255,.65);line-height:1.9;max-height:120px;overflow-y:auto;font-family:monospace}
+#p-fact{font-size:10px;color:rgba(229,108,120,.55);margin-top:8px;line-height:1.7;font-family:monospace}
 #p-close{position:absolute;top:14px;right:16px;background:transparent;border:none;color:rgba(255,255,255,.35);font-size:22px;cursor:pointer;pointer-events:auto}
 </style>
 </head>
 <body>
 
-<!-- AR.js inyecta el video de cámara aquí automáticamente -->
+<script>
+const REGIONS=[
+  {name:'Lóbulo Frontal',   hex:'#4d88ff', color:0x4d88ff, pos:[0.62,0.12,0.32],  shape:[0.82,0.60,0.75,0.08],
+   desc:'Centro del razonamiento complejo, la planificación y la toma de decisiones. Alberga la corteza motora primaria que controla los movimientos voluntarios.',
+   fn:'Representa el 41% del neocórtex humano y es la región que más ha crecido durante la evolución.'},
+  {name:'Lóbulo Parietal',  hex:'#44dd88', color:0x44dd88, pos:[0,0.55,0],         shape:[0.65,0.50,0.55,0.07],
+   desc:'Procesa la información sensorial del cuerpo: tacto, temperatura, dolor y presión. Integra señales para orientar el cuerpo en el espacio.',
+   fn:'Contiene el homúnculo de Penfield: un mapa donde la mano ocupa más espacio que el tronco.'},
+  {name:'Lóbulo Temporal',  hex:'#bb55ff', color:0xbb55ff, pos:[-0.65,0,-0.1],     shape:[0.55,0.45,0.60,0.06],
+   desc:'Esencial para la audición, la comprensión del lenguaje hablado y la formación de nuevas memorias. Contiene el hipocampo.',
+   fn:'El área de Wernicke, aquí ubicada, permite comprender el lenguaje hablado.'},
+  {name:'Lóbulo Occipital', hex:'#ffcc33', color:0xffcc33, pos:[0,-0.08,-0.68],    shape:[0.45,0.40,0.52,0.06],
+   desc:'Principal centro de procesamiento visual del cerebro. Interpreta formas, colores, movimiento y profundidad enviados por la retina.',
+   fn:'Una lesión aquí puede causar ceguera cortical aunque los ojos funcionen perfectamente.'},
+  {name:'Cerebelo',         hex:'#ff7733', color:0xff7733, pos:[0,-0.52,-0.38],     shape:[0.72,0.58,0.65,0.08],
+   desc:'Coordina los movimientos voluntarios y mantiene el equilibrio. Permite automatizar habilidades como caminar o escribir.',
+   fn:'Aunque es el 10% del volumen, contiene más del 50% de todas las neuronas del cerebro.'},
+  {name:'Tronco Encefálico',hex:'#ff4477', color:0xff4477, pos:[0,-0.32,0.12],      shape:[0.38,0.55,0.38,0.07],
+   desc:'Conecta el cerebro con la médula espinal y controla funciones vitales: respiración, ritmo cardíaco y presión arterial.',
+   fn:'Es la estructura evolutivamente más antigua del cerebro, presente desde hace más de 500 millones de años.'},
+];
 
+// Componente Three.js cerebro para A-Frame
+AFRAME.registerComponent('brain-mesh', {
+  init: function () {
+    const THREE = AFRAME.THREE;
+    const group = new THREE.Group();
+    this.meshes = [];
+
+    function mkSphere(rx,ry,rz,na){
+      const g = new THREE.SphereGeometry(1,26,18);
+      const p = g.attributes.position;
+      for(let i=0;i<p.count;i++){
+        const x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+        const n=(Math.sin(x*4.7+y*3.1)*Math.cos(y*2.3-z*3.7)+Math.sin(z*5.1))*na;
+        p.setXYZ(i,x*rx+n,y*ry+n,z*rz+n);
+      }
+      p.needsUpdate=true; g.computeVertexNormals(); return g;
+    }
+
+    REGIONS.forEach((r,i)=>{
+      const [rx,ry,rz,na]=r.shape;
+      const mat=new THREE.MeshPhongMaterial({color:r.color,transparent:true,opacity:0.9,shininess:50});
+      const m=new THREE.Mesh(mkSphere(rx,ry,rz,na),mat);
+      m.position.set(...r.pos);
+      m.userData.ri=i;
+      group.add(m);
+      this.meshes.push(m);
+    });
+
+    // wireframe
+    const wv=[];
+    this.meshes.forEach(m=>{
+      const p=m.geometry.attributes.position;
+      for(let i=0;i<p.count;i++) wv.push(p.getX(i)+m.position.x,p.getY(i)+m.position.y,p.getZ(i)+m.position.z);
+    });
+    const wg=new THREE.BufferGeometry();
+    wg.setAttribute('position',new THREE.Float32BufferAttribute(wv,3));
+    group.add(new THREE.Mesh(wg,new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.06})));
+
+    group.scale.setScalar(0.06);
+    this.el.setObject3D('brain',group);
+    this.brainGroup = group;
+  },
+
+  tick: function(time) {
+    if(this.brainGroup) this.brainGroup.rotation.y = time * 0.001;
+  }
+});
+</script>
+
+<a-scene
+  embedded
+  arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono;"
+  vr-mode-ui="enabled: false"
+  renderer="antialias: true; alpha: true; logarithmicDepthBuffer: true;"
+  loading-screen="enabled: false"
+>
+  <a-marker preset="hiro" id="hiroMarker">
+    <a-entity brain-mesh></a-entity>
+  </a-marker>
+  <a-entity camera></a-entity>
+</a-scene>
+
+<!-- HUD -->
 <div id="hud">
   <div id="top">
     <div id="logo">
       <p>// MODO AR</p>
       <p>NEUROEXPLORA</p>
     </div>
-    <button id="back-btn" onclick="goBack()">× SALIR</button>
+    <button id="back-btn" onclick="window.location.href='/'">× SALIR</button>
   </div>
   <div id="bottom">
     <p id="msg">APUNTA AL MARCADOR HIRO</p>
@@ -73,168 +154,69 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 </div>
 
 <script>
-const REGIONS=[
-  {name:'Lóbulo Frontal',   hex:0x4d88ff, pos:[0.62,0.12,0.32],  shape:[0.82,0.60,0.75,0.08],
-   desc:'Centro del razonamiento complejo, la planificación y la toma de decisiones. Alberga la corteza motora primaria que controla los movimientos voluntarios.',
-   fn:'Representa el 41% del neocórtex humano y es la región que más ha crecido durante la evolución.'},
-  {name:'Lóbulo Parietal',  hex:0x44dd88, pos:[0,0.55,0],         shape:[0.65,0.50,0.55,0.07],
-   desc:'Procesa la información sensorial del cuerpo: tacto, temperatura, dolor y presión. Integra señales para orientar el cuerpo en el espacio.',
-   fn:'Contiene el homúnculo de Penfield: un mapa donde la mano ocupa más espacio que el tronco.'},
-  {name:'Lóbulo Temporal',  hex:0xbb55ff, pos:[-0.65,0,-0.1],     shape:[0.55,0.45,0.60,0.06],
-   desc:'Esencial para la audición, la comprensión del lenguaje hablado y la formación de nuevas memorias. Contiene el hipocampo.',
-   fn:'El área de Wernicke, aquí ubicada, permite comprender el lenguaje hablado.'},
-  {name:'Lóbulo Occipital', hex:0xffcc33, pos:[0,-0.08,-0.68],    shape:[0.45,0.40,0.52,0.06],
-   desc:'Principal centro de procesamiento visual del cerebro. Interpreta formas, colores, movimiento y profundidad enviados por la retina.',
-   fn:'Una lesión aquí puede causar ceguera cortical aunque los ojos funcionen perfectamente.'},
-  {name:'Cerebelo',         hex:0xff7733, pos:[0,-0.52,-0.38],     shape:[0.72,0.58,0.65,0.08],
-   desc:'Coordina los movimientos voluntarios y mantiene el equilibrio. Permite automatizar habilidades como caminar o escribir.',
-   fn:'Aunque es el 10% del volumen, contiene más del 50% de todas las neuronas del cerebro.'},
-  {name:'Tronco Encefálico',hex:0xff4477, pos:[0,-0.32,0.12],      shape:[0.38,0.55,0.38,0.07],
-   desc:'Conecta el cerebro con la médula espinal y controla funciones vitales: respiración, ritmo cardíaco y presión arterial.',
-   fn:'Es la estructura evolutivamente más antigua del cerebro, presente desde hace más de 500 millones de años.'},
-];
+// Detectar marcador visible
+const marker = document.getElementById('hiroMarker');
+let markerVisible = false;
 
-// ── Three.js renderer ────────────────────────────────
-const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-renderer.setClearColor(0x000000, 0);
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.domElement.style.cssText = 'position:fixed;top:0;left:0;z-index:1';
-document.body.appendChild(renderer.domElement);
-
-const scene  = new THREE.Scene();
-const camera = new THREE.Camera();  // AR.js gestiona la proyección
-scene.add(camera);
-
-scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-const dl = new THREE.DirectionalLight(0xffffff, 1.1); dl.position.set(2,3,4); scene.add(dl);
-const dl2= new THREE.DirectionalLight(0x8899ff, 0.3); dl2.position.set(-2,-1,-2); scene.add(dl2);
-const pt = new THREE.PointLight(0xffffff, 0.6, 20); scene.add(pt);
-
-// ── Geometría cerebro ────────────────────────────────
-function mkSphere(rx,ry,rz,na){
-  const g=new THREE.SphereBufferGeometry(1,26,18);
-  const p=g.attributes.position;
-  for(let i=0;i<p.count;i++){
-    const x=p.getX(i),y=p.getY(i),z=p.getZ(i);
-    const n=(Math.sin(x*4.7+y*3.1)*Math.cos(y*2.3-z*3.7)+Math.sin(z*5.1))*na;
-    p.setXYZ(i,x*rx+n,y*ry+n,z*rz+n);
-  }
-  p.needsUpdate=true; g.computeVertexNormals(); return g;
-}
-
-const brainGroup = new THREE.Group();
-const meshes = [];
-REGIONS.forEach((r,i)=>{
-  const [rx,ry,rz,na]=r.shape;
-  const mat=new THREE.MeshPhongMaterial({color:r.hex,transparent:true,opacity:0.9,shininess:50});
-  const m=new THREE.Mesh(mkSphere(rx,ry,rz,na),mat);
-  m.position.set(...r.pos); m.userData.ri=i;
-  brainGroup.add(m); meshes.push(m);
-});
-const wv=[]; meshes.forEach(m=>{const p=m.geometry.attributes.position;for(let i=0;i<p.count;i++)wv.push(p.getX(i)+m.position.x,p.getY(i)+m.position.y,p.getZ(i)+m.position.z);});
-const wg=new THREE.BufferGeometry(); wg.setAttribute('position',new THREE.Float32BufferAttribute(wv,3));
-brainGroup.add(new THREE.Mesh(wg,new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.06})));
-
-// ── AR.js Three.js toolkit ───────────────────────────
-const arSource = new THREEx.ArToolkitSource({ sourceType:'webcam' });
-
-arSource.init(()=>{
-  setTimeout(()=>{
-    arSource.onResizeElement();
-    arSource.copyElementSizeTo(renderer.domElement);
-    if(arContext.arController) arSource.copyElementSizeTo(arContext.arController.canvas);
-  }, 500);
+marker.addEventListener('markerFound', () => {
+  markerVisible = true;
+  document.getElementById('frame').style.opacity = '0';
+  const msg = document.getElementById('msg');
+  msg.textContent = 'TOCA UNA REGIÓN PARA EXPLORAR';
+  msg.className = 'found';
 });
 
-const arContext = new THREEx.ArToolkitContext({
-  cameraParametersUrl: '/camera_para.dat',
-  detectionMode: 'mono',
-  maxDetectionRate: 30,
-  canvasWidth: 640,
-  canvasHeight: 480,
+marker.addEventListener('markerLost', () => {
+  markerVisible = false;
+  closePanel();
+  document.getElementById('frame').style.opacity = '1';
+  const msg = document.getElementById('msg');
+  msg.textContent = 'APUNTA AL MARCADOR HIRO';
+  msg.className = '';
 });
 
-arContext.init(()=>{
-  camera.projectionMatrix.copy(arContext.getProjectionMatrix());
-});
+// Tap en regiones — raycaster sobre el canvas de A-Frame
+document.querySelector('a-scene').addEventListener('loaded', () => {
+  const scene = document.querySelector('a-scene');
+  const canvasEl = scene.canvas;
 
-// ── Marcador Hiro → cerebro se ancla aquí ───────────
-const markerRoot = new THREE.Group();
-scene.add(markerRoot);
+  canvasEl.addEventListener('click', e => {
+    if (!markerVisible) return;
+    if (document.getElementById('panel').classList.contains('open')) return;
 
-new THREEx.ArMarkerControls(arContext, markerRoot, {
-  type: 'pattern',
-  patternUrl: '/patt.hiro',
-  changeMatrixMode: 'cameraTransformMatrix',
-});
+    const THREE = AFRAME.THREE;
+    const rect = canvasEl.getBoundingClientRect();
+    const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const ny = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-// Cerebro sobre el marcador
-brainGroup.scale.setScalar(0.08);
-brainGroup.position.set(0, 0.1, 0);
-markerRoot.add(brainGroup);
+    const camera = scene.camera;
+    const ray = new THREE.Raycaster();
+    ray.setFromCamera(new THREE.Vector2(nx, ny), camera);
 
-// ── Estado del marcador ──────────────────────────────
-let markerFound = false;
-let t = 0;
+    const brainEl = document.querySelector('[brain-mesh]');
+    if (!brainEl) return;
+    const brainGroup = brainEl.getObject3D('brain');
+    if (!brainGroup) return;
 
-function checkMarker(){
-  const wasFound = markerFound;
-  markerFound = markerRoot.visible;
-  if(markerFound !== wasFound){
-    if(markerFound){
-      document.getElementById('frame').style.opacity='0';
-      document.getElementById('msg').textContent='TOCA UNA REGIÓN PARA EXPLORAR';
-      document.getElementById('msg').className='found';
-    } else {
-      closePanel();
-      document.getElementById('frame').style.opacity='1';
-      document.getElementById('msg').textContent='APUNTA AL MARCADOR HIRO';
-      document.getElementById('msg').className='';
+    const meshes = [];
+    brainGroup.traverse(c => { if (c.isMesh && c.userData.ri !== undefined) meshes.push(c); });
+
+    const hits = ray.intersectObjects(meshes, false);
+    if (hits.length > 0 && hits[0].object.userData.ri !== undefined) {
+      openPanel(hits[0].object.userData.ri);
     }
-  }
-}
-
-// ── Render loop ───────────────────────────────────────
-renderer.setAnimationLoop(()=>{
-  t += 0.016;
-  pt.position.set(Math.sin(t*0.5)*2, 2, Math.cos(t*0.4)*2);
-  if(markerFound) brainGroup.rotation.y += 0.007;
-  if(arSource.ready) arContext.update(arSource.domElement);
-  checkMarker();
-  renderer.render(scene, camera);
+  });
 });
 
-// ── Resize ────────────────────────────────────────────
-window.addEventListener('resize',()=>{
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  arSource.onResizeElement();
-  arSource.copyElementSizeTo(renderer.domElement);
-  if(arContext.arController) arSource.copyElementSizeTo(arContext.arController.canvas);
-});
-
-// ── Tap en regiones ───────────────────────────────────
-renderer.domElement.addEventListener('click',e=>{
-  if(!markerFound) return;
-  if(document.getElementById('panel').classList.contains('open')) return;
-  const nx=(e.clientX/window.innerWidth)*2-1;
-  const ny=-(e.clientY/window.innerHeight)*2+1;
-  const ray=new THREE.Raycaster();
-  ray.setFromCamera(new THREE.Vector2(nx,ny), camera);
-  const hits=ray.intersectObjects(meshes, false);
-  if(hits.length>0 && hits[0].object.userData.ri!==undefined) openPanel(hits[0].object.userData.ri);
-});
-
-function openPanel(i){
-  const r=REGIONS[i];
-  document.getElementById('p-num').textContent=String(i+1).padStart(2,'0');
-  document.getElementById('p-name').textContent=r.name;
-  document.getElementById('p-desc').textContent=r.desc;
-  document.getElementById('p-fact').textContent='★ '+r.fn;
+function openPanel(i) {
+  const r = REGIONS[i];
+  document.getElementById('p-num').textContent = String(i+1).padStart(2,'0');
+  document.getElementById('p-name').textContent = r.name;
+  document.getElementById('p-desc').textContent = r.desc;
+  document.getElementById('p-fact').textContent = '★ ' + r.fn;
   document.getElementById('panel').classList.add('open');
 }
-function closePanel(){ document.getElementById('panel').classList.remove('open'); }
-function goBack(){ window.location.href='/'; }
+function closePanel() { document.getElementById('panel').classList.remove('open'); }
 </script>
 </body>
 </html>
