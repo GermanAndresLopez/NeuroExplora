@@ -1,5 +1,4 @@
 import { useState, useEffect, Suspense, lazy } from 'react'
-import { QRCodeSVG } from 'qrcode.react'
 import { playClick, playSelect, playBack, playSuccess } from '../hooks/useSound.js'
 import QuizGame from '../components/games/QuizGame.jsx'
 import { saveScore } from '../hooks/useScores.js'
@@ -10,7 +9,6 @@ const ARSceneXR = lazy(() => import('../components/ARSceneXR.jsx'))
 const BRAIN_SRC    = '/models/brain_total.html?v=4'
 const TOTAL_REGIONS = 6
 
-const APP_URL   = import.meta.env.VITE_APP_URL || 'https://neuro-explora-2vt08th89-german-lopezs-projects.vercel.app'
 const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 
 // experience: null | 'selector' | '3d' | '3d-quiz' | 'ar'
@@ -247,19 +245,6 @@ export default function InicioView({ onNavigate }) {
 
         {/* ── FOOTER ── */}
         <div style={{ textAlign: 'center' }}>
-          {!IS_MOBILE && (
-            <div style={{ marginBottom: 10 }}>
-              <p style={{ fontSize: '0.55rem', color: 'var(--text-dim)', letterSpacing: '0.2em', marginBottom: 6 }}>
-                ESCANEAR PARA MÓVIL
-              </p>
-              <div style={{
-                display: 'inline-block', padding: 6, background: '#fff',
-                clipPath: 'polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px)',
-              }}>
-                <QRCodeSVG value={APP_URL} size={80} bgColor="#ffffff" fgColor="#050508" level="M" />
-              </div>
-            </div>
-          )}
           <p style={{ fontSize: '0.5rem', color: 'rgba(229,108,120,0.35)', letterSpacing: '0.12em', fontFamily: "'Courier New', monospace" }}>
             X_12.847 &nbsp; Y_-35.291 &nbsp; Z_0.000
           </p>

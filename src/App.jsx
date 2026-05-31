@@ -3,6 +3,7 @@ import InicioView from './views/InicioView.jsx'
 import GamesView from './views/GamesView.jsx'
 import ConfiguracionView from './views/ConfiguracionView.jsx'
 import { saveScore } from './hooks/useScores.js'
+import { startAmbient } from './hooks/useSound.js'
 
 export default function App() {
   const [view, setView]       = useState('inicio')
@@ -14,6 +15,7 @@ export default function App() {
       const el = document.documentElement
       const fn = el.requestFullscreen ?? el.webkitRequestFullscreen ?? el.mozRequestFullScreen
       if (fn) fn.call(el)?.catch?.(() => {})
+      startAmbient()
       document.removeEventListener('touchstart', tryFS)
       document.removeEventListener('pointerdown', tryFS)
     }
