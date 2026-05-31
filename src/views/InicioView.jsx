@@ -7,7 +7,7 @@ import { getLeaderboard } from '../lib/leaderboard.js'
 
 const ARSceneXR = lazy(() => import('../components/ARSceneXR.jsx'))
 
-const BRAIN_SRC    = '/models/brain_total.html'
+const BRAIN_SRC    = '/models/brain_total.html?v=4'
 const TOTAL_REGIONS = 6
 
 const APP_URL   = import.meta.env.VITE_APP_URL || 'https://neuro-explora-2vt08th89-german-lopezs-projects.vercel.app'
@@ -62,6 +62,24 @@ export default function InicioView({ onNavigate }) {
       window.removeEventListener('message', onMessage)
     }
   }, [])
+
+  // Polling: read localStorage every 300ms while in 3D — doesn't depend on cross-frame events
+  useEffect(() => {
+    if (experience !== '3d') return
+    const id = setInterval(() => {
+      try {
+        const raw = localStorage.getItem('ne_viewed')
+        if (!raw) return
+        const arr = JSON.parse(raw)
+        if (!Array.isArray(arr) || arr.length === 0) return
+        setViewedRegions(prev => {
+          if (prev.size === arr.length) return prev
+          return new Set(arr)
+        })
+      } catch {}
+    }, 300)
+    return () => clearInterval(id)
+  }, [experience])
 
   // Show completion modal when all regions seen
   useEffect(() => {
