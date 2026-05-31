@@ -211,6 +211,8 @@ function selectRegion(i){
   panel.style.borderColor=r.hex+'33';
   panel.style.boxShadow=`0 0 30px ${r.hex}22`;
   panel.style.display='block';
+  // Dual-channel: BroadcastChannel (reliable same-origin) + postMessage fallback
+  try { new BroadcastChannel('ne_brain').postMessage({ type: 'regionViewed', index: i, name: r.name }); } catch(e) {}
   window.parent?.postMessage({ type: 'regionViewed', index: i, name: r.name }, '*');
 }
 

@@ -21,11 +21,11 @@ export default function InicioView({ onNavigate }) {
   const [tutorialModal,  setTutorialModal]  = useState(false)
   const [showRanking,    setShowRanking]    = useState(false)
 
-  // Listen for postMessage from the brain iframe
+  // Listen for region views via BroadcastChannel (primary) and postMessage (fallback)
   useEffect(() => {
-    function onMessage(e) {
-      if (e.data?.type !== 'regionViewed') return
-      const idx = e.data.index
+    function handleRegion(data) {
+      if (data?.type !== 'regionViewed') return
+      const idx = data.index
       if (typeof idx !== 'number') return
       setViewedRegions(prev => {
         if (prev.has(idx)) return prev
@@ -34,8 +34,22 @@ export default function InicioView({ onNavigate }) {
         return next
       })
     }
+
+    // BroadcastChannel — most reliable for same-origin iframe ↔ parent
+    let bc = null
+    try {
+      bc = new BroadcastChannel('ne_brain')
+      bc.onmessage = (e) => handleRegion(e.data)
+    } catch {}
+
+    // postMessage fallback
+    const onMessage = (e) => handleRegion(e.data)
     window.addEventListener('message', onMessage)
-    return () => window.removeEventListener('message', onMessage)
+
+    return () => {
+      bc?.close()
+      window.removeEventListener('message', onMessage)
+    }
   }, [])
 
   // Show completion modal when all regions seen
