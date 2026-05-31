@@ -65,10 +65,7 @@ h1{font-family:'Press Start 2P',monospace;font-size:12px;color:#e56c78;letter-sp
 <button class="btn-back" onclick="goBack()">← VOLVER</button>
 
 <script>
-function goBack(){
-  if(window.parent!==window) window.parent.postMessage({type:'arExit'},'*');
-  else window.history.back();
-}
+function goBack(){ window.location.href='/'; }
 </script>
 </body>
 </html>

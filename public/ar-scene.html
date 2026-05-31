@@ -200,10 +200,7 @@ function openPanel(i){
 }
 function closePanel(){ document.getElementById('panel').classList.remove('open'); }
 
-function goBack(){
-  if(window.parent!==window) window.parent.postMessage({type:'arExit'},'*');
-  else window.history.back();
-}
+function goBack(){ window.location.href='/'; }
 </script>
 </body>
 </html>
