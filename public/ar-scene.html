@@ -6,15 +6,12 @@
 <title>NeuroExplora AR</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar-threex-minified.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#000}
 
-/* Capas AR */
-#cam{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
-#c3d{position:fixed;inset:0;width:100%;height:100%;z-index:1}
-
-/* HUD */
+/* HUD sobre la escena AR */
 #hud{position:fixed;inset:0;z-index:10;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between}
 #top{padding:14px 16px;background:linear-gradient(to bottom,rgba(5,5,8,.82),transparent);display:flex;justify-content:space-between;align-items:flex-start}
 #logo p:first-child{font-size:9px;color:#e56c78;letter-spacing:.2em;opacity:.85}
@@ -22,8 +19,19 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 #back-btn{pointer-events:auto;padding:9px 14px;background:rgba(5,5,8,.9);border:1px solid rgba(229,108,120,.5);color:#e56c78;font-size:9px;font-family:'Press Start 2P',monospace;cursor:pointer}
 #bottom{padding:14px 16px 22px;background:linear-gradient(to top,rgba(5,5,8,.72),transparent);text-align:center}
 #msg{font-size:10px;color:rgba(255,255,255,.5);letter-spacing:.08em;line-height:1.7}
+#msg.found{color:#50e3b0}
 
-/* Info panel */
+/* Marco de escaneo */
+#frame{position:fixed;top:50%;left:50%;transform:translate(-50%,-58%);width:190px;height:190px;pointer-events:none;z-index:9;transition:opacity .4s}
+.co{position:absolute;width:20px;height:20px}
+.tl{top:0;left:0;border-top:2px solid #e56c78;border-left:2px solid #e56c78}
+.tr{top:0;right:0;border-top:2px solid #e56c78;border-right:2px solid #e56c78}
+.bl{bottom:0;left:0;border-bottom:2px solid #e56c78;border-left:2px solid #e56c78}
+.br{bottom:0;right:0;border-bottom:2px solid #e56c78;border-right:2px solid #e56c78}
+.sl{position:absolute;left:4px;right:4px;height:1px;background:linear-gradient(90deg,transparent,#e56c78,transparent);animation:sy 2s ease-in-out infinite}
+@keyframes sy{0%{top:4px;opacity:.3}50%{top:178px;opacity:1}100%{top:4px;opacity:.3}}
+
+/* Panel info */
 #panel{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(5,5,8,.97);border-top:1px solid rgba(229,108,120,.4);padding:20px 18px 36px;transform:translateY(100%);transition:transform .3s ease}
 #panel.open{transform:translateY(0)}
 #p-num{font-size:26px;font-weight:700;opacity:.1;color:#fff;line-height:1;margin-bottom:2px}
@@ -31,16 +39,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
 #p-desc{font-size:11px;color:rgba(255,255,255,.65);line-height:1.9;max-height:120px;overflow-y:auto}
 #p-fact{font-size:10px;color:rgba(229,108,120,.55);margin-top:8px;line-height:1.7}
 #p-close{position:absolute;top:14px;right:16px;background:transparent;border:none;color:rgba(255,255,255,.35);font-size:22px;cursor:pointer;pointer-events:auto}
-
-/* Pantalla de error */
-#err{position:fixed;inset:0;z-index:30;background:#050508;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center;display:none}
-#err p{font-size:11px;color:rgba(255,255,255,.5);font-family:'Courier New',monospace;line-height:1.9;max-width:280px}
 </style>
 </head>
 <body>
 
-<video id="cam" autoplay playsinline muted></video>
-<canvas id="c3d"></canvas>
+<!-- AR.js inyecta el video de cámara aquí automáticamente -->
 
 <div id="hud">
   <div id="top">
@@ -51,8 +54,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
     <button id="back-btn" onclick="goBack()">× SALIR</button>
   </div>
   <div id="bottom">
-    <p id="msg">INICIANDO CÁMARA...</p>
+    <p id="msg">APUNTA AL MARCADOR HIRO</p>
   </div>
+</div>
+
+<div id="frame">
+  <div class="co tl"></div><div class="co tr"></div>
+  <div class="co bl"></div><div class="co br"></div>
+  <div class="sl"></div>
 </div>
 
 <div id="panel">
@@ -63,49 +72,46 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000}
   <div id="p-fact"></div>
 </div>
 
-<div id="err">
-  <p style="font-size:13px;color:#e56c78;font-family:'Press Start 2P',monospace;letter-spacing:.1em">SIN CÁMARA</p>
-  <p>Concede permiso de cámara en los ajustes del navegador e intenta de nuevo.</p>
-  <button onclick="goBack()" style="padding:12px 24px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:10px;font-family:'Press Start 2P',monospace">← VOLVER</button>
-</div>
-
 <script>
 const REGIONS=[
   {name:'Lóbulo Frontal',   hex:0x4d88ff, pos:[0.62,0.12,0.32],  shape:[0.82,0.60,0.75,0.08],
    desc:'Centro del razonamiento complejo, la planificación y la toma de decisiones. Alberga la corteza motora primaria que controla los movimientos voluntarios.',
    fn:'Representa el 41% del neocórtex humano y es la región que más ha crecido durante la evolución.'},
   {name:'Lóbulo Parietal',  hex:0x44dd88, pos:[0,0.55,0],         shape:[0.65,0.50,0.55,0.07],
-   desc:'Procesa la información sensorial del cuerpo: tacto, temperatura, dolor y presión. Integra señales para orientar el cuerpo en el espacio y reconocer objetos.',
-   fn:'Contiene el homúnculo de Penfield: un mapa donde la mano ocupa más espacio que el tronco entero.'},
+   desc:'Procesa la información sensorial del cuerpo: tacto, temperatura, dolor y presión. Integra señales para orientar el cuerpo en el espacio.',
+   fn:'Contiene el homúnculo de Penfield: un mapa donde la mano ocupa más espacio que el tronco.'},
   {name:'Lóbulo Temporal',  hex:0xbb55ff, pos:[-0.65,0,-0.1],     shape:[0.55,0.45,0.60,0.06],
    desc:'Esencial para la audición, la comprensión del lenguaje hablado y la formación de nuevas memorias. Contiene el hipocampo.',
-   fn:'El área de Wernicke, ubicada aquí, permite comprender el lenguaje hablado.'},
+   fn:'El área de Wernicke, aquí ubicada, permite comprender el lenguaje hablado.'},
   {name:'Lóbulo Occipital', hex:0xffcc33, pos:[0,-0.08,-0.68],    shape:[0.45,0.40,0.52,0.06],
    desc:'Principal centro de procesamiento visual del cerebro. Interpreta formas, colores, movimiento y profundidad enviados por la retina.',
    fn:'Una lesión aquí puede causar ceguera cortical aunque los ojos funcionen perfectamente.'},
   {name:'Cerebelo',         hex:0xff7733, pos:[0,-0.52,-0.38],     shape:[0.72,0.58,0.65,0.08],
    desc:'Coordina los movimientos voluntarios y mantiene el equilibrio. Permite automatizar habilidades como caminar o escribir.',
-   fn:'Aunque es el 10% del volumen cerebral, contiene más del 50% de todas las neuronas.'},
+   fn:'Aunque es el 10% del volumen, contiene más del 50% de todas las neuronas del cerebro.'},
   {name:'Tronco Encefálico',hex:0xff4477, pos:[0,-0.32,0.12],      shape:[0.38,0.55,0.38,0.07],
    desc:'Conecta el cerebro con la médula espinal y controla funciones vitales: respiración, ritmo cardíaco y presión arterial.',
    fn:'Es la estructura evolutivamente más antigua del cerebro, presente desde hace más de 500 millones de años.'},
 ];
 
-// ── Three.js ─────────────────────────────────────────
-const canvas = document.getElementById('c3d');
-const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
+// ── Three.js renderer ────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
 renderer.setClearColor(0x000000, 0);
+renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.domElement.style.cssText = 'position:fixed;top:0;left:0;z-index:1';
+document.body.appendChild(renderer.domElement);
 
 const scene  = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(60, 1, 0.01, 100);
-camera.position.set(0, 0, 3.5);
+const camera = new THREE.Camera();  // AR.js gestiona la proyección
+scene.add(camera);
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 const dl = new THREE.DirectionalLight(0xffffff, 1.1); dl.position.set(2,3,4); scene.add(dl);
 const dl2= new THREE.DirectionalLight(0x8899ff, 0.3); dl2.position.set(-2,-1,-2); scene.add(dl2);
-const pt = new THREE.PointLight(0xffffff, 0.5, 20); scene.add(pt);
+const pt = new THREE.PointLight(0xffffff, 0.6, 20); scene.add(pt);
 
+// ── Geometría cerebro ────────────────────────────────
 function mkSphere(rx,ry,rz,na){
   const g=new THREE.SphereBufferGeometry(1,26,18);
   const p=g.attributes.position;
@@ -129,82 +135,96 @@ REGIONS.forEach((r,i)=>{
 const wv=[]; meshes.forEach(m=>{const p=m.geometry.attributes.position;for(let i=0;i<p.count;i++)wv.push(p.getX(i)+m.position.x,p.getY(i)+m.position.y,p.getZ(i)+m.position.z);});
 const wg=new THREE.BufferGeometry(); wg.setAttribute('position',new THREE.Float32BufferAttribute(wv,3));
 brainGroup.add(new THREE.Mesh(wg,new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.06})));
-scene.add(brainGroup);
 
-// ── Resize ───────────────────────────────────────────
-function resize(){
-  const W=window.innerWidth, H=window.innerHeight;
-  renderer.setSize(W,H,false);
-  camera.aspect=W/H; camera.updateProjectionMatrix();
-}
-resize(); window.addEventListener('resize',resize);
+// ── AR.js Three.js toolkit ───────────────────────────
+const arSource = new THREEx.ArToolkitSource({ sourceType:'webcam' });
 
-// ── Giroscopio ───────────────────────────────────────
-let orient={alpha:0,beta:90,gamma:0}, hasOrient=false;
-
-function startOrientation(){
-  window.addEventListener('deviceorientation',e=>{
-    if(e.alpha!=null){orient.alpha=e.alpha;orient.beta=e.beta||90;orient.gamma=e.gamma||0;hasOrient=true;}
-  },{passive:true});
-}
-
-if(typeof DeviceOrientationEvent?.requestPermission==='function'){
-  // iOS: pedir permiso (necesita gesto, pero ya estamos en una acción del usuario)
-  DeviceOrientationEvent.requestPermission().then(r=>{if(r==='granted')startOrientation();}).catch(()=>{});
-} else {
-  startOrientation();
-}
-
-// ── Cámara ───────────────────────────────────────────
-const video = document.getElementById('cam');
-
-navigator.mediaDevices.getUserMedia({
-  video:{facingMode:'environment', width:{ideal:1280}, height:{ideal:720}},
-  audio:false
-})
-.then(stream=>{
-  video.srcObject=stream;
-  video.play();
-  document.getElementById('msg').textContent='INCLINA EL CELULAR PARA ROTAR · TOCA LAS REGIONES';
-})
-.catch(()=>{
-  document.getElementById('err').style.display='flex';
-  document.getElementById('hud').style.display='none';
+arSource.init(()=>{
+  setTimeout(()=>{
+    arSource.onResizeElement();
+    arSource.copyElementSizeTo(renderer.domElement);
+    if(arContext.arController) arSource.copyElementSizeTo(arContext.arController.canvas);
+  }, 500);
 });
 
-// ── Raycaster para tap ───────────────────────────────
-const ray = new THREE.Raycaster();
-canvas.addEventListener('click',e=>{
+const arContext = new THREEx.ArToolkitContext({
+  cameraParametersUrl: '/camera_para.dat',
+  detectionMode: 'mono',
+  maxDetectionRate: 30,
+  canvasWidth: 640,
+  canvasHeight: 480,
+});
+
+arContext.init(()=>{
+  camera.projectionMatrix.copy(arContext.getProjectionMatrix());
+});
+
+// ── Marcador Hiro → cerebro se ancla aquí ───────────
+const markerRoot = new THREE.Group();
+scene.add(markerRoot);
+
+new THREEx.ArMarkerControls(arContext, markerRoot, {
+  type: 'pattern',
+  patternUrl: '/patt.hiro',
+  changeMatrixMode: 'cameraTransformMatrix',
+});
+
+// Cerebro sobre el marcador
+brainGroup.scale.setScalar(0.08);
+brainGroup.position.set(0, 0.1, 0);
+markerRoot.add(brainGroup);
+
+// ── Estado del marcador ──────────────────────────────
+let markerFound = false;
+let t = 0;
+
+function checkMarker(){
+  const wasFound = markerFound;
+  markerFound = markerRoot.visible;
+  if(markerFound !== wasFound){
+    if(markerFound){
+      document.getElementById('frame').style.opacity='0';
+      document.getElementById('msg').textContent='TOCA UNA REGIÓN PARA EXPLORAR';
+      document.getElementById('msg').className='found';
+    } else {
+      closePanel();
+      document.getElementById('frame').style.opacity='1';
+      document.getElementById('msg').textContent='APUNTA AL MARCADOR HIRO';
+      document.getElementById('msg').className='';
+    }
+  }
+}
+
+// ── Render loop ───────────────────────────────────────
+renderer.setAnimationLoop(()=>{
+  t += 0.016;
+  pt.position.set(Math.sin(t*0.5)*2, 2, Math.cos(t*0.4)*2);
+  if(markerFound) brainGroup.rotation.y += 0.007;
+  if(arSource.ready) arContext.update(arSource.domElement);
+  checkMarker();
+  renderer.render(scene, camera);
+});
+
+// ── Resize ────────────────────────────────────────────
+window.addEventListener('resize',()=>{
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  arSource.onResizeElement();
+  arSource.copyElementSizeTo(renderer.domElement);
+  if(arContext.arController) arSource.copyElementSizeTo(arContext.arController.canvas);
+});
+
+// ── Tap en regiones ───────────────────────────────────
+renderer.domElement.addEventListener('click',e=>{
+  if(!markerFound) return;
   if(document.getElementById('panel').classList.contains('open')) return;
   const nx=(e.clientX/window.innerWidth)*2-1;
   const ny=-(e.clientY/window.innerHeight)*2+1;
-  ray.setFromCamera(new THREE.Vector2(nx,ny),camera);
-  const hits=ray.intersectObjects(meshes,false);
-  if(hits.length>0&&hits[0].object.userData.ri!==undefined) openPanel(hits[0].object.userData.ri);
+  const ray=new THREE.Raycaster();
+  ray.setFromCamera(new THREE.Vector2(nx,ny), camera);
+  const hits=ray.intersectObjects(meshes, false);
+  if(hits.length>0 && hits[0].object.userData.ri!==undefined) openPanel(hits[0].object.userData.ri);
 });
 
-// ── Render loop ───────────────────────────────────────
-let t=0;
-(function animate(){
-  requestAnimationFrame(animate);
-  t+=0.016;
-  pt.position.set(Math.sin(t*0.5)*2, 2, Math.cos(t*0.4)*2);
-
-  if(hasOrient){
-    // Cerebro fijo en el mundo — la cámara sigue la orientación del dispositivo
-    const R=Math.PI/180;
-    camera.rotation.order='YXZ';
-    camera.rotation.y = orient.alpha*R;
-    camera.rotation.x = (orient.beta-90)*R;
-    camera.rotation.z = -orient.gamma*R;
-  } else {
-    // Sin giroscopio: rotación suave automática
-    brainGroup.rotation.y = t*0.004;
-  }
-  renderer.render(scene,camera);
-})();
-
-// ── UI ────────────────────────────────────────────────
 function openPanel(i){
   const r=REGIONS[i];
   document.getElementById('p-num').textContent=String(i+1).padStart(2,'0');
