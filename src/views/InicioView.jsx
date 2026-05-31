@@ -4,7 +4,7 @@ import QuizGame from '../components/games/QuizGame.jsx'
 import { saveScore } from '../hooks/useScores.js'
 import { getLeaderboard } from '../lib/leaderboard.js'
 
-const ARSceneXR = lazy(() => import('../components/ARSceneXR.jsx'))
+const ARCamera = lazy(() => import('../components/ARCamera.jsx'))
 
 const BRAIN_SRC    = '/models/brain_total.html?v=4'
 const TOTAL_REGIONS = 6
@@ -136,7 +136,7 @@ export default function InicioView({ onNavigate }) {
   if (experience === 'ar') {
     return (
       <Suspense fallback={<LoadingFill />}>
-        <ARSceneXR onExit={handleExitAR} />
+        <ARCamera onExit={handleExitAR} />
       </Suspense>
     )
   }

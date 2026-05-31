@@ -95,10 +95,54 @@ const canvas=document.getElementById('c');
 const app=document.getElementById('app');
 let W=app.clientWidth, H=app.clientHeight;
 
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+// ── AR mode (brain_total.html?ar=1) ──────────────────────────────────────
+const arMode=new URLSearchParams(location.search).get('ar')==='1';
+let arReady=false;
+let arOrient={alpha:0,beta:90,gamma:0};
+
+if(arMode){
+  canvas.style.cssText+='position:absolute;inset:0;z-index:1;';
+  document.body.style.background='transparent';
+  document.documentElement.style.background='transparent';
+
+  // Video behind canvas
+  const vid=document.createElement('video');
+  vid.autoplay=true; vid.playsInline=true; vid.muted=true;
+  vid.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;';
+  app.insertBefore(vid,canvas);
+
+  const startAR=async()=>{
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
+      vid.srcObject=stream;
+      await vid.play();
+    }catch(e){console.warn('Camera:',e);}
+    try{
+      if(typeof DeviceOrientationEvent?.requestPermission==='function')
+        await DeviceOrientationEvent.requestPermission();
+    }catch(e){}
+    window.addEventListener('deviceorientation',e=>{
+      if(e.alpha!=null)arOrient.alpha=e.alpha;
+      if(e.beta!=null) arOrient.beta=e.beta;
+      if(e.gamma!=null)arOrient.gamma=e.gamma;
+    });
+    arReady=true;
+    document.getElementById('ar-tap')?.remove();
+  };
+
+  // Tap-to-start overlay (also handles iOS permission gesture)
+  const tapDiv=document.createElement('div');
+  tapDiv.id='ar-tap';
+  tapDiv.style.cssText='position:absolute;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(5,5,8,0.92);cursor:pointer;';
+  tapDiv.innerHTML='<div style="text-align:center;padding:32px 24px;border:1px solid rgba(229,108,120,0.3)"><div style="font-size:13px;color:#e56c78;letter-spacing:0.15em;font-family:monospace;line-height:2.2;font-weight:bold">TOCA PARA<br>ACTIVAR AR</div><div style="font-size:11px;color:rgba(255,255,255,0.35);font-family:monospace;margin-top:10px;line-height:1.8">Necesita cámara y giroscopio</div></div>';
+  tapDiv.addEventListener('click',startAR,{once:true});
+  app.appendChild(tapDiv);
+}
+
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:arMode});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
 renderer.setSize(W,H);
-renderer.setClearColor(0x0a0a16,1);
+renderer.setClearColor(arMode?0x000000:0x0a0a16,arMode?0:1);
 
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(42,W/H,0.01,100);
@@ -399,8 +443,8 @@ app.addEventListener('mousemove',e=>{
   canvas.style.cursor=newHover>=0?'pointer':'grab';
 });
 
-app.addEventListener('mousedown',e=>{drag=true;px=e.clientX;py=e.clientY;canvas.style.cursor='grabbing';});
-window.addEventListener('mouseup',()=>{drag=false;canvas.style.cursor='grab';});
+app.addEventListener('mousedown',e=>{if(arMode)return;drag=true;px=e.clientX;py=e.clientY;canvas.style.cursor='grabbing';});
+window.addEventListener('mouseup',()=>{if(arMode)return;drag=false;canvas.style.cursor='grab';});
 window.addEventListener('mousemove',e=>{
   if(!drag)return;
   rotY+=(e.clientX-px)*0.009; rotX+=(e.clientY-py)*0.009;
@@ -425,7 +469,7 @@ function getTouchDist(t){
 app.addEventListener('touchstart',e=>{
   e.preventDefault();
   if(e.touches.length===1){
-    drag=true;
+    if(!arMode) drag=true;
     px=e.touches[0].clientX;
     py=e.touches[0].clientY;
     touchStartPos={x:px,y:py};
@@ -495,8 +539,17 @@ let t=0,glitchOn=false;
 function animate(){
   requestAnimationFrame(animate);
   t+=0.016;
-  brainGroup.rotation.y=rotY+t*0.004;
-  brainGroup.rotation.x=rotX;
+  if(arMode&&arReady){
+    const toRad=v=>v*Math.PI/180;
+    camera.rotation.order='YXZ';
+    camera.rotation.y= toRad(arOrient.alpha);
+    camera.rotation.x= toRad(arOrient.beta-90);
+    camera.rotation.z= toRad(-arOrient.gamma);
+    brainGroup.rotation.set(0,0,0);
+  } else if(!arMode){
+    brainGroup.rotation.y=rotY+t*0.004;
+    brainGroup.rotation.x=rotX;
+  }
   pt.position.x=Math.sin(t*0.5)*2;
   pt.position.z=Math.cos(t*0.4)*1.5+1.5;
   if(!glitchOn&&Math.random()<0.007){
