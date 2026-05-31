@@ -101,42 +101,35 @@ let arReady=false;
 let arOrient={alpha:0,beta:90,gamma:0};
 
 if(arMode){
-  canvas.style.cssText+='position:absolute;inset:0;z-index:1;';
-  document.body.style.background='transparent';
-  document.documentElement.style.background='transparent';
+  canvas.style.cssText+='position:absolute;inset:0;z-index:1;background:transparent;';
+  document.body.style.cssText+='background:transparent;';
+  document.documentElement.style.cssText+='background:transparent;';
 
-  // Video behind canvas
-  const vid=document.createElement('video');
-  vid.autoplay=true; vid.playsInline=true; vid.muted=true;
-  vid.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;';
-  app.insertBefore(vid,canvas);
-
-  const startAR=async()=>{
-    try{
-      const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});
-      vid.srcObject=stream;
-      await vid.play();
-    }catch(e){console.warn('Camera:',e);}
-    try{
-      if(typeof DeviceOrientationEvent?.requestPermission==='function')
-        await DeviceOrientationEvent.requestPermission();
-    }catch(e){}
+  const startOrientation=()=>{
     window.addEventListener('deviceorientation',e=>{
       if(e.alpha!=null)arOrient.alpha=e.alpha;
       if(e.beta!=null) arOrient.beta=e.beta;
       if(e.gamma!=null)arOrient.gamma=e.gamma;
-    });
+    },{passive:true});
     arReady=true;
-    document.getElementById('ar-tap')?.remove();
   };
 
-  // Tap-to-start overlay (also handles iOS permission gesture)
-  const tapDiv=document.createElement('div');
-  tapDiv.id='ar-tap';
-  tapDiv.style.cssText='position:absolute;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(5,5,8,0.92);cursor:pointer;';
-  tapDiv.innerHTML='<div style="text-align:center;padding:32px 24px;border:1px solid rgba(229,108,120,0.3)"><div style="font-size:13px;color:#e56c78;letter-spacing:0.15em;font-family:monospace;line-height:2.2;font-weight:bold">TOCA PARA<br>ACTIVAR AR</div><div style="font-size:11px;color:rgba(255,255,255,0.35);font-family:monospace;margin-top:10px;line-height:1.8">Necesita cámara y giroscopio</div></div>';
-  tapDiv.addEventListener('click',startAR,{once:true});
-  app.appendChild(tapDiv);
+  // iOS requires explicit user-gesture to enable DeviceOrientation
+  if(typeof DeviceOrientationEvent?.requestPermission==='function'){
+    const tapDiv=document.createElement('div');
+    tapDiv.id='ar-tap';
+    tapDiv.style.cssText='position:absolute;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(5,5,8,0.88);cursor:pointer;';
+    tapDiv.innerHTML='<div style="text-align:center;padding:28px 22px;border:1px solid rgba(229,108,120,0.35)"><div style="font-size:13px;color:#e56c78;letter-spacing:0.12em;font-family:monospace;line-height:2.2;font-weight:bold">TOCA PARA<br>ACTIVAR ROTACIÓN</div><div style="font-size:10px;color:rgba(255,255,255,0.35);font-family:monospace;margin-top:10px;line-height:1.8">(Permiso de giroscopio)</div></div>';
+    tapDiv.addEventListener('click',async()=>{
+      try{await DeviceOrientationEvent.requestPermission();}catch(e){}
+      tapDiv.remove();
+      startOrientation();
+    },{once:true});
+    app.appendChild(tapDiv);
+  } else {
+    // Android / desktop — orientation works without permission
+    startOrientation();
+  }
 }
 
 const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:arMode});
