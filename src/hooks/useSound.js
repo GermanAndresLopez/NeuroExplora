@@ -20,13 +20,13 @@ export function startAmbient() {
       master.gain.linearRampToValueAtTime(0.10, ac.currentTime + 3)
       master.connect(ac.destination)
 
-      // Pad chord: A minor drone, octave higher for phone speaker audibility
+      // C major pentatonic pad — happy, calm, concentration-friendly
       const layers = [
-        { freq: 220.0, detune:  0 },
-        { freq: 220.5, detune:  0 },
-        { freq: 329.6, detune: -2 },
-        { freq: 440.0, detune:  1 },
-        { freq: 261.6, detune:  0 },
+        { freq: 261.6, detune:  0 },   // C4 root
+        { freq: 262.2, detune:  0 },   // C4 slightly detuned (chorus warmth)
+        { freq: 392.0, detune: -1 },   // G4 fifth
+        { freq: 440.0, detune:  1 },   // A4 sixth
+        { freq: 523.3, detune:  0 },   // C5 octave
       ]
       const oscs = layers.map(({ freq, detune }) => {
         const osc = ac.createOscillator()
@@ -44,8 +44,8 @@ export function startAmbient() {
       // Slow breathing LFO (~12s cycle)
       const lfo     = ac.createOscillator()
       const lfoGain = ac.createGain()
-      lfo.frequency.value = 0.08
-      lfoGain.gain.value  = 0.015
+      lfo.frequency.value = 0.05   // ~20s cycle, more peaceful
+      lfoGain.gain.value  = 0.012
       lfo.connect(lfoGain)
       lfoGain.connect(master.gain)
       lfo.start()

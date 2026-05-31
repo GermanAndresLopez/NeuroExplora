@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, lazy } from 'react'
+import { useState, useEffect, useRef, Suspense, lazy } from 'react'
 import { playClick, playSelect, playBack, playSuccess } from '../hooks/useSound.js'
 import QuizGame from '../components/games/QuizGame.jsx'
 import { saveScore } from '../hooks/useScores.js'
@@ -18,6 +18,8 @@ export default function InicioView({ onNavigate }) {
   const [completeModal,  setCompleteModal]  = useState(false)
   const [tutorialModal,  setTutorialModal]  = useState(false)
   const [showRanking,    setShowRanking]    = useState(false)
+  const [countdown,      setCountdown]      = useState(null)
+  const countdownStarted                   = useRef(false)
 
   // Listen for region views — three channels for maximum compatibility
   useEffect(() => {
@@ -79,13 +81,22 @@ export default function InicioView({ onNavigate }) {
     return () => clearInterval(id)
   }, [experience])
 
-  // Show completion modal when all regions seen (10s delay to let user finish reading)
+  // Start countdown when all regions seen
   useEffect(() => {
     if (experience !== '3d' || viewedRegions.size < TOTAL_REGIONS) return
+    if (countdownStarted.current) return
+    countdownStarted.current = true
     playSuccess()
-    const id = setTimeout(() => setCompleteModal(true), 10000)
-    return () => clearTimeout(id)
+    setCountdown(10)
   }, [viewedRegions, experience])
+
+  // Countdown tick — each second; at 0 opens modal
+  useEffect(() => {
+    if (countdown === null) return
+    if (countdown === 0) { setCompleteModal(true); setCountdown(null); return }
+    const id = setTimeout(() => setCountdown(c => c - 1), 1000)
+    return () => clearTimeout(id)
+  }, [countdown])
 
   // Reset state when returning to main menu
   useEffect(() => {
@@ -94,6 +105,8 @@ export default function InicioView({ onNavigate }) {
       setViewedRegions(new Set())
       setCompleteModal(false)
       setTutorialModal(false)
+      setCountdown(null)
+      countdownStarted.current = false
     }
   }, [experience])
 
@@ -172,6 +185,9 @@ export default function InicioView({ onNavigate }) {
           total={TOTAL_REGIONS}
           onExit={handleExitAR}
         />
+
+        {/* Countdown banner when all regions seen */}
+        {countdown !== null && <CountdownBanner seconds={countdown} />}
 
         {/* Tutorial modal shown once on entry */}
         {tutorialModal && (
@@ -263,6 +279,36 @@ export default function InicioView({ onNavigate }) {
       {showRanking && (
         <RankingModal onClose={() => { playBack(); setShowRanking(false) }} />
       )}
+    </div>
+  )
+}
+
+// ── Countdown banner ─────────────────────────────────────────────────────
+function CountdownBanner({ seconds }) {
+  return (
+    <div style={{
+      position: 'absolute', top: 44, left: 0, right: 0, zIndex: 35,
+      background: 'rgba(229,108,120,0.18)',
+      borderBottom: '1px solid var(--accent-border)',
+      backdropFilter: 'blur(4px)',
+      padding: '10px 16px',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+    }}>
+      <span style={{ fontSize: '0.55rem', color: 'var(--accent)', letterSpacing: '0.12em', fontFamily: "'Courier New', monospace" }}>
+        ★ ZONAS COMPLETADAS — QUIZ EN
+      </span>
+      <span style={{
+        fontSize: '1.1rem', color: '#fff',
+        fontFamily: "'Press Start 2P', monospace",
+        lineHeight: 1,
+        textShadow: '0 0 10px var(--accent)',
+        minWidth: 22, textAlign: 'center',
+      }}>
+        {seconds}
+      </span>
+      <span style={{ fontSize: '0.55rem', color: 'var(--accent)', letterSpacing: '0.12em', fontFamily: "'Courier New', monospace" }}>
+        SEG...
+      </span>
     </div>
   )
 }
