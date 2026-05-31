@@ -40,7 +40,7 @@ const QUESTIONS = [
   },
 ]
 
-export default function QuizGame({ onScore }) {
+export default function QuizGame({ onScore, onFinish }) {
   const [phase, setPhase]               = useState('idle')
   const [questionIndex, setQuestionIndex] = useState(0)
   const [selected, setSelected]         = useState(null)
@@ -147,18 +147,32 @@ export default function QuizGame({ onScore }) {
           </div>
         </div>
 
+        {onFinish && (
+          <button
+            onClick={onFinish}
+            className="pixel-btn"
+            style={{
+              width: '100%', maxWidth: '260px',
+              padding: '13px', fontSize: '0.75rem',
+              background: 'var(--accent)', color: '#050508',
+              border: '2px solid var(--accent)',
+              boxShadow: '4px 4px 0 var(--accent-border)',
+            }}
+          >
+            &gt; IR A JUEGOS
+          </button>
+        )}
         <button
           onClick={startGame}
           className="pixel-btn"
           style={{
             width: '100%', maxWidth: '260px',
-            padding: '12px', fontSize: '0.72rem',
-            background: 'var(--accent)', color: '#050508',
-            border: '2px solid var(--accent)',
-            boxShadow: '4px 4px 0 var(--accent-border)',
+            padding: '12px', fontSize: '0.65rem',
+            background: 'transparent', color: 'var(--accent)',
+            border: '1px solid var(--accent-border)',
           }}
         >
-          &gt; DE NUEVO
+          &gt; REPETIR QUIZ
         </button>
       </div>
     )

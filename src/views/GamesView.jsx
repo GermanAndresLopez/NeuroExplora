@@ -2,8 +2,6 @@ import MemoryGame from '../components/games/MemoryGame.jsx'
 import QuizGame from '../components/games/QuizGame.jsx'
 import { playClick, playBack } from '../hooks/useSound.js'
 
-const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-
 export default function GamesView({ tab, onTabChange, onScore, onHome }) {
   return (
     <div className="flex flex-col h-full">
@@ -18,7 +16,7 @@ export default function GamesView({ tab, onTabChange, onScore, onHome }) {
           <p style={{ fontSize: '0.6rem', color: 'var(--accent)', letterSpacing: '0.2em', opacity: 0.7 }}>
             //SCN_02 &nbsp;&gt;&nbsp; MÓDULO JUEGOS
           </p>
-          {IS_MOBILE && onHome && (
+          {onHome && (
             <button
               onClick={() => { playBack(); onHome() }}
               style={{

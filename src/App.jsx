@@ -1,15 +1,29 @@
-import { useState, useCallback } from 'react'
-import BottomNav from './components/BottomNav.jsx'
+import { useState, useCallback, useEffect } from 'react'
 import InicioView from './views/InicioView.jsx'
 import GamesView from './views/GamesView.jsx'
 import ConfiguracionView from './views/ConfiguracionView.jsx'
 import { saveScore } from './hooks/useScores.js'
 
-const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-
 export default function App() {
   const [view, setView]       = useState('inicio')
   const [gameTab, setGameTab] = useState('memory')
+
+  // Request fullscreen on first user gesture (browsers require a gesture)
+  useEffect(() => {
+    function tryFS() {
+      const el = document.documentElement
+      const fn = el.requestFullscreen ?? el.webkitRequestFullscreen ?? el.mozRequestFullScreen
+      if (fn) fn.call(el)?.catch?.(() => {})
+      document.removeEventListener('touchstart', tryFS)
+      document.removeEventListener('pointerdown', tryFS)
+    }
+    document.addEventListener('touchstart',  tryFS, { once: true, passive: true })
+    document.addEventListener('pointerdown', tryFS, { once: true })
+    return () => {
+      document.removeEventListener('touchstart',  tryFS)
+      document.removeEventListener('pointerdown', tryFS)
+    }
+  }, [])
 
   const handleScore = useCallback((game, score) => {
     const user = (() => {
@@ -33,14 +47,11 @@ export default function App() {
       {/* Scanlines overlay */}
       <div className="fixed inset-0 pointer-events-none z-[9990] scanlines" />
 
-      {/* Content area — full height on mobile (no nav), offset on desktop */}
-      <div className={`absolute inset-0 ${IS_MOBILE ? '' : 'bottom-14'} overflow-hidden`}>
+      <div className="absolute inset-0 overflow-hidden">
         {view === 'inicio'  && <InicioView onNavigate={setView} />}
         {view === 'juegos'  && <GamesView tab={gameTab} onTabChange={setGameTab} onScore={handleScore} onHome={() => setView('inicio')} />}
         {view === 'config'  && <ConfiguracionView onHome={() => setView('inicio')} />}
       </div>
-
-      {!IS_MOBILE && <BottomNav currentView={view} onChange={setView} />}
     </div>
   )
 }

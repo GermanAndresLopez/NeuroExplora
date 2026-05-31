@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { getScores } from '../hooks/useScores.js'
 import { playBack } from '../hooks/useSound.js'
 
-const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
@@ -94,7 +93,7 @@ export default function ConfiguracionView({ onHome }) {
           <p style={{ fontSize: '0.6rem', color: 'var(--accent)', letterSpacing: '0.2em', opacity: 0.7 }}>
             //SCN_03 &nbsp;&gt;&nbsp; CONFIGURACIÓN
           </p>
-          {IS_MOBILE && onHome && (
+          {onHome && (
             <button
               onClick={() => { playBack(); onHome() }}
               style={{
