@@ -10,43 +10,54 @@ function ctx() {
 export function startAmbient() {
   if (ambientNodes) return
   try {
-    const ac = ctx()
-    const master = ac.createGain()
-    master.gain.setValueAtTime(0, ac.currentTime)
-    master.gain.linearRampToValueAtTime(0.032, ac.currentTime + 5)
-    master.connect(ac.destination)
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+    const ac = audioCtx
 
-    // Pad chord: A minor drone with slight detuning for richness
-    const layers = [
-      { freq: 110.0, detune:  0  },
-      { freq: 110.3, detune:  3  },
-      { freq: 165.0, detune: -2  },
-      { freq: 220.0, detune:  1  },
-      { freq: 130.8, detune:  0  },
-    ]
-    const oscs = layers.map(({ freq, detune }) => {
-      const osc = ac.createOscillator()
-      const g   = ac.createGain()
-      osc.type          = 'sine'
-      osc.frequency.value = freq
-      osc.detune.value  = detune
-      g.gain.value      = 1 / layers.length
-      osc.connect(g)
-      g.connect(master)
-      osc.start()
-      return osc
-    })
+    const build = () => {
+      if (ambientNodes) return
+      const master = ac.createGain()
+      master.gain.setValueAtTime(0, ac.currentTime)
+      master.gain.linearRampToValueAtTime(0.10, ac.currentTime + 3)
+      master.connect(ac.destination)
 
-    // Slow breathing LFO (~12s cycle)
-    const lfo     = ac.createOscillator()
-    const lfoGain = ac.createGain()
-    lfo.frequency.value = 0.08
-    lfoGain.gain.value  = 0.008
-    lfo.connect(lfoGain)
-    lfoGain.connect(master.gain)
-    lfo.start()
+      // Pad chord: A minor drone with slight detuning for richness
+      const layers = [
+        { freq: 110.0, detune:  0 },
+        { freq: 110.3, detune:  3 },
+        { freq: 165.0, detune: -2 },
+        { freq: 220.0, detune:  1 },
+        { freq: 130.8, detune:  0 },
+      ]
+      const oscs = layers.map(({ freq, detune }) => {
+        const osc = ac.createOscillator()
+        const g   = ac.createGain()
+        osc.type            = 'sine'
+        osc.frequency.value = freq
+        osc.detune.value    = detune
+        g.gain.value        = 1 / layers.length
+        osc.connect(g)
+        g.connect(master)
+        osc.start()
+        return osc
+      })
 
-    ambientNodes = { oscs, lfo, master }
+      // Slow breathing LFO (~12s cycle)
+      const lfo     = ac.createOscillator()
+      const lfoGain = ac.createGain()
+      lfo.frequency.value = 0.08
+      lfoGain.gain.value  = 0.015
+      lfo.connect(lfoGain)
+      lfoGain.connect(master.gain)
+      lfo.start()
+
+      ambientNodes = { oscs, lfo, master }
+    }
+
+    if (ac.state === 'running') {
+      build()
+    } else {
+      ac.resume().then(build).catch(() => {})
+    }
   } catch {}
 }
 
