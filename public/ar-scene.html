@@ -19,15 +19,16 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 #bottom{padding:14px 16px 24px;background:linear-gradient(to top,rgba(5,5,8,.75),transparent);text-align:center}
 #msg{font-size:10px;color:rgba(255,255,255,.6);letter-spacing:.08em;line-height:1.8}
 #msg.found{color:#50e3b0}
+#counter{font-size:9px;color:rgba(255,255,255,.4);letter-spacing:.06em;margin-top:4px}
 #start-overlay{position:fixed;inset:0;z-index:200;background:rgba(5,5,8,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:28px}
 #start-overlay.hidden{display:none}
 #start-overlay h2{font-size:11px;color:#e56c78;letter-spacing:.12em;line-height:2;text-align:center}
 #start-overlay p{font-size:9px;color:rgba(255,255,255,.4);line-height:2;text-align:center;max-width:280px}
 #start-btn{padding:14px 32px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:11px;font-family:'Press Start 2P',monospace;letter-spacing:.08em;box-shadow:4px 4px 0 rgba(229,108,120,.3);pointer-events:auto}
-#panel{position:fixed;bottom:0;left:0;right:0;z-index:150;background:rgba(5,5,8,.97);border-top:1px solid rgba(229,108,120,.4);padding:20px 18px 36px;transform:translateY(100%);transition:transform .3s ease}
+#panel{position:fixed;bottom:0;left:0;right:0;z-index:150;background:rgba(5,5,8,.97);border-top:2px solid rgba(229,108,120,.3);padding:20px 18px 36px;transform:translateY(100%);transition:transform .3s ease}
 #panel.open{transform:translateY(0)}
-#p-num{font-size:26px;font-weight:700;opacity:.1;color:#fff;line-height:1;margin-bottom:2px;font-family:monospace}
-#p-name{font-size:13px;color:#e56c78;letter-spacing:.12em;margin-bottom:10px}
+#p-num{font-size:32px;font-weight:700;opacity:.12;line-height:1;margin-bottom:2px;font-family:monospace;color:#fff}
+#p-name{font-size:14px;letter-spacing:.12em;margin-bottom:10px;color:#e56c78}
 #p-desc{font-size:11px;color:rgba(255,255,255,.65);line-height:1.9;max-height:130px;overflow-y:auto;font-family:monospace}
 #p-close{position:absolute;top:14px;right:16px;background:transparent;border:none;color:rgba(255,255,255,.35);font-size:22px;cursor:pointer;pointer-events:auto}
 </style>
@@ -41,18 +42,21 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
     <div id="logo"><p>// MODO AR</p><p>NEUROEXPLORA</p></div>
     <button id="back-btn" onclick="window.location.href='/'">&#xd7; SALIR</button>
   </div>
-  <div id="bottom"><p id="msg"></p></div>
+  <div id="bottom">
+    <p id="msg"></p>
+    <p id="counter"></p>
+  </div>
 </div>
 
 <div id="start-overlay">
   <h2>MODO AR</h2>
-  <p>Toca ACTIVAR y luego toca cualquier parte de la pantalla para colocar el cerebro en el espacio real.</p>
+  <p>Toca ACTIVAR y luego toca la pantalla para colocar el cerebro. Arrastra para rotarlo. Toca una region para explorarla.</p>
   <button id="start-btn" onclick="startAR()">&#9658;&nbsp; ACTIVAR AR</button>
   <p style="font-size:8px;color:rgba(255,255,255,.2)">Requiere Chrome en Android con ARCore</p>
 </div>
 
 <div id="panel">
-  <button id="p-close" onclick="closePanel()">&#xd7;</button>
+  <button id="p-close" onclick="deselectAll()">&#xd7;</button>
   <div id="p-num">01</div>
   <div id="p-name"></div>
   <div id="p-desc"></div>
@@ -93,20 +97,26 @@ window.addEventListener('resize',()=>{
   camera.updateProjectionMatrix();
 });
 
-// ── Cerebro (geometría de brain_total.html) ───────────
+// ── Cerebro: misma geometría y colores que brain_total.html ──
+const BASE_HEX  = [0x1a2444, 0x112a1e, 0x251135, 0x2a2210, 0x2a1808, 0x2a0d18];
+const ACTIVE_HEX= [0x4d88ff, 0x44dd88, 0xbb55ff, 0xffcc33, 0xff7733, 0xff4477];
+const SEEN_HEX  = [0x2a4a99, 0x1f6644, 0x5a2a99, 0x887033, 0x883a22, 0x881a33];
+
 const brainGroup = new THREE.Group();
 brainGroup.visible = false;
 scene.add(brainGroup);
 
-const ACTIVE_HEX=[0x4d88ff,0x44dd88,0xbb55ff,0xffcc33,0xff7733,0xff4477];
-const regionMeshes=[];
-
+const regionMeshes = [];
 REGION_B64.forEach((b64,i)=>{
   const positions=decodeF32(b64);
   const geo=new THREE.BufferGeometry();
   geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
   geo.computeVertexNormals();
-  const mat=new THREE.MeshPhongMaterial({color:ACTIVE_HEX[i],flatShading:true,shininess:80,transparent:true,opacity:0.9});
+  const mat=new THREE.MeshPhongMaterial({
+    color:BASE_HEX[i], flatShading:true, shininess:80,
+    specular:new THREE.Color(ACTIVE_HEX[i]).multiplyScalar(0.1),
+    transparent:true, opacity:0.45
+  });
   const mesh=new THREE.Mesh(geo,mat);
   mesh.userData.ri=i;
   brainGroup.add(mesh);
@@ -118,71 +128,178 @@ REGION_B64.forEach(b64=>{const f=decodeF32(b64);for(let j=0;j<f.length;j++)allPo
 const wGeo=new THREE.BufferGeometry();
 wGeo.setAttribute('position',new THREE.Float32BufferAttribute(allPos,3));
 wGeo.computeVertexNormals();
-brainGroup.add(new THREE.Mesh(wGeo,new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.08})));
+const wireMesh=new THREE.Mesh(wGeo,new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.08}));
+brainGroup.add(wireMesh);
 brainGroup.add(new THREE.Mesh(wGeo.clone(),new THREE.MeshBasicMaterial({color:0x00ffcc,wireframe:true,transparent:true,opacity:0.04})));
 
-// Reticle para superficie detectada
+// Reticle para hit-test
 const reticleGeo=new THREE.RingGeometry(0.08,0.11,32).rotateX(-Math.PI/2);
 const reticle=new THREE.Mesh(reticleGeo,new THREE.MeshBasicMaterial({color:0xe56c78,transparent:true,opacity:0.75,side:THREE.DoubleSide}));
 reticle.matrixAutoUpdate=false;
 reticle.visible=false;
 scene.add(reticle);
 
-// ── WebXR ─────────────────────────────────────────────
+// ── Estado de regiones ────────────────────────────────
+const seenRegions=new Set();
+let activeRegion=-1;
+
+function updateColors(){
+  regionMeshes.forEach((m,j)=>{
+    if(j===activeRegion){
+      m.material.color.setHex(ACTIVE_HEX[j]);
+      m.material.emissive.setHex(ACTIVE_HEX[j]);
+      m.material.emissiveIntensity=0.25;
+      m.material.opacity=1.0;
+    } else if(seenRegions.has(j)){
+      m.material.color.setHex(SEEN_HEX[j]);
+      m.material.emissive.setHex(0x000000);
+      m.material.emissiveIntensity=0;
+      m.material.opacity=0.75;
+    } else {
+      m.material.color.setHex(BASE_HEX[j]);
+      m.material.emissive.setHex(0x000000);
+      m.material.emissiveIntensity=0;
+      m.material.opacity=0.45;
+    }
+  });
+}
+
+function selectRegion(i){
+  seenRegions.add(i);
+  activeRegion=i;
+  updateColors();
+  updateCounter();
+
+  const r=REGIONS[i];
+  const hex=r.hex;
+  document.getElementById('p-num').textContent=String(i+1).padStart(2,'0');
+  document.getElementById('p-num').style.color=hex;
+  document.getElementById('p-name').textContent=r.name;
+  document.getElementById('p-name').style.color=hex;
+  document.getElementById('p-desc').textContent=r.desc;
+  document.getElementById('panel').style.borderColor=hex+'44';
+  document.getElementById('panel').classList.add('open');
+
+  // Actualizar localStorage (mismo mecanismo que brain_total.html)
+  try{
+    const v=JSON.parse(localStorage.getItem('ne_viewed')||'[]');
+    if(!v.includes(i)){v.push(i);localStorage.setItem('ne_viewed',JSON.stringify(v));}
+  }catch(e){}
+  try{new BroadcastChannel('ne_brain').postMessage({type:'regionViewed',index:i,name:r.name});}catch(e){}
+}
+
+function deselectAll(){
+  activeRegion=-1;
+  updateColors();
+  document.getElementById('panel').classList.remove('open');
+}
+
+function updateCounter(){
+  document.getElementById('counter').textContent=seenRegions.size+' / 6 REGIONES';
+}
+
+// ── Rotación táctil del cerebro ───────────────────────
+let rotX=0, rotY=0;
+let dragActive=false, dragPx=0, dragPy=0;
+let touchStart={x:0,y:0};
+let lastXrCam=camera;
+
+function handleDragStart(x,y){
+  dragActive=true;
+  dragPx=x; dragPy=y;
+  touchStart={x,y};
+}
+function handleDragMove(x,y){
+  if(!dragActive||!brainGroup.visible) return;
+  rotY+=(x-dragPx)*0.01;
+  rotX+=(y-dragPy)*0.01;
+  rotX=Math.max(-1.4,Math.min(1.4,rotX));
+  brainGroup.rotation.y=rotY;
+  brainGroup.rotation.x=rotX;
+  dragPx=x; dragPy=y;
+}
+function handleDragEnd(x,y){
+  dragActive=false;
+  const dx=Math.abs(x-touchStart.x);
+  const dy=Math.abs(y-touchStart.y);
+  if(dx<10&&dy<10) doRaycast(x,y);
+}
+
+renderer.domElement.addEventListener('mousedown',e=>{handleDragStart(e.clientX,e.clientY);});
+window.addEventListener('mousemove',e=>{if(dragActive)handleDragMove(e.clientX,e.clientY);});
+window.addEventListener('mouseup',e=>{if(dragActive)handleDragEnd(e.clientX,e.clientY);});
+
+renderer.domElement.addEventListener('touchstart',e=>{
+  if(e.touches.length===1) handleDragStart(e.touches[0].clientX,e.touches[0].clientY);
+  e.preventDefault();
+},{passive:false});
+renderer.domElement.addEventListener('touchmove',e=>{
+  if(e.touches.length===1) handleDragMove(e.touches[0].clientX,e.touches[0].clientY);
+  e.preventDefault();
+},{passive:false});
+renderer.domElement.addEventListener('touchend',e=>{
+  if(e.changedTouches.length>0) handleDragEnd(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
+  e.preventDefault();
+},{passive:false});
+
+function doRaycast(x,y){
+  if(!brainGroup.visible) return;
+  if(document.getElementById('panel').classList.contains('open')){ deselectAll(); return; }
+  const nx=(x/innerWidth)*2-1;
+  const ny=-(y/innerHeight)*2+1;
+  const ray=new THREE.Raycaster();
+  const cam=renderer.xr.isPresenting?lastXrCam:camera;
+  ray.setFromCamera(new THREE.Vector2(nx,ny),cam);
+  const hits=ray.intersectObjects(regionMeshes,false);
+  if(hits.length>0&&hits[0].object.userData.ri!==undefined){
+    selectRegion(hits[0].object.userData.ri);
+  }
+}
+
+// ── WebXR AR ──────────────────────────────────────────
 let hitTestSource=null;
 let brainPlaced=false;
 let xrSession=null;
 
 async function startAR(){
   document.getElementById('start-overlay').classList.add('hidden');
-
-  const ok=navigator.xr && await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false);
-  if(!ok){ return startFallback(); }
-
+  const ok=navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false);
+  if(!ok){return startFallback();}
   try{
     xrSession=await navigator.xr.requestSession('immersive-ar',{
       requiredFeatures:['hit-test'],
       optionalFeatures:['dom-overlay'],
       domOverlay:{root:document.body}
     });
-  }catch(e){ return startFallback(); }
+  }catch(e){return startFallback();}
 
   renderer.xr.setReferenceSpaceType('local');
   await renderer.xr.setSession(xrSession);
 
-  // Inicializar hit-test source UNA vez (fuera del loop)
   try{
-    const viewerSpace=await xrSession.requestReferenceSpace('viewer');
-    hitTestSource=await xrSession.requestHitTestSource({space:viewerSpace});
-  }catch(e){
-    hitTestSource=null; // Fallback: colocar sin superficie
-  }
+    const vs=await xrSession.requestReferenceSpace('viewer');
+    hitTestSource=await xrSession.requestHitTestSource({space:vs});
+  }catch(e){hitTestSource=null;}
 
-  xrSession.addEventListener('end',()=>{ hitTestSource=null; brainPlaced=false; });
+  xrSession.addEventListener('end',()=>{hitTestSource=null;brainPlaced=false;});
 
-  // Controller para detectar tap del usuario
   const controller=renderer.xr.getController(0);
-  controller.addEventListener('select',onTap);
+  controller.addEventListener('select',onXrTap);
   scene.add(controller);
 
+  brainGroup.scale.setScalar(0.15);
   setMsg('TOCA LA PANTALLA PARA COLOCAR EL CEREBRO');
-  brainGroup.scale.setScalar(0.15); // escala en metros WebXR
 
   renderer.setAnimationLoop((time,frame)=>{
     if(frame){
-      // Actualizar reticle con hit-test
-      if(hitTestSource && !brainPlaced){
+      lastXrCam=renderer.xr.getCamera(camera);
+      if(hitTestSource&&!brainPlaced){
         const refSpace=renderer.xr.getReferenceSpace();
         const hits=frame.getHitTestResults(hitTestSource);
         if(hits.length>0){
           const pose=hits[0].getPose(refSpace);
-          if(pose){
-            reticle.visible=true;
-            reticle.matrix.fromArray(pose.transform.matrix);
-          }
-        }else{
-          reticle.visible=false;
-        }
+          if(pose){reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);}
+        }else{reticle.visible=false;}
       }
     }
     pt.position.set(Math.sin(Date.now()*0.0005)*2,1.5,Math.cos(Date.now()*0.0004)*2);
@@ -190,15 +307,11 @@ async function startAR(){
   });
 }
 
-function onTap(){
+function onXrTap(){
   if(brainPlaced) return;
-
   if(reticle.visible){
-    // Colocar en la superficie detectada
     brainGroup.position.setFromMatrixPosition(reticle.matrix);
-    brainGroup.quaternion.setFromRotationMatrix(reticle.matrix);
   }else{
-    // Sin superficie: colocar 1.5 metros adelante de la cámara
     const xrCam=renderer.xr.getCamera(camera);
     const pos=new THREE.Vector3();
     const dir=new THREE.Vector3();
@@ -207,33 +320,16 @@ function onTap(){
     brainGroup.position.copy(pos).addScaledVector(dir,1.5);
     brainGroup.position.y=pos.y-0.3;
   }
-
+  brainGroup.rotation.set(0,0,0);
+  rotX=0; rotY=0;
   brainGroup.visible=true;
   brainPlaced=true;
   reticle.visible=false;
-  setMsg('MUEVETE ALREDEDOR · TOCA UNA REGION','found');
+  setMsg('ARRASTRA PARA ROTAR · TOCA UNA REGION','found');
+  updateCounter();
 }
 
-// ── Tap en regiones (click sobre canvas) ─────────────
-renderer.domElement.addEventListener('click',e=>{
-  if(!brainGroup.visible) return;
-  if(document.getElementById('panel').classList.contains('open')) return;
-
-  const nx=(e.clientX/innerWidth)*2-1;
-  const ny=-(e.clientY/innerHeight)*2+1;
-  const ray=new THREE.Raycaster();
-
-  // En WebXR usar la cámara XR, en fallback la cámara normal
-  const cam=renderer.xr.isPresenting ? renderer.xr.getCamera(camera) : camera;
-  ray.setFromCamera(new THREE.Vector2(nx,ny),cam);
-
-  const hits=ray.intersectObjects(regionMeshes,false);
-  if(hits.length>0 && hits[0].object.userData.ri!==undefined){
-    openPanel(hits[0].object.userData.ri);
-  }
-});
-
-// ── Fallback: giroscopio + getUserMedia ───────────────
+// ── Fallback: giroscopio + cámara ────────────────────
 let fallbackMode=false;
 let hasOrient=false;
 const targetQuat=new THREE.Quaternion();
@@ -242,7 +338,7 @@ const _e=new THREE.Euler();
 const _corr=new THREE.Quaternion(-Math.sqrt(0.5),0,0,Math.sqrt(0.5));
 
 function onOrientation(e){
-  if(e.alpha==null) return;
+  if(dragActive||e.alpha==null) return; // touch override
   _e.set(THREE.MathUtils.degToRad(e.beta),THREE.MathUtils.degToRad(e.alpha),THREE.MathUtils.degToRad(-e.gamma),'YXZ');
   targetQuat.setFromEuler(_e).multiply(_corr);
   hasOrient=true;
@@ -254,7 +350,7 @@ async function startFallback(){
   vb.style.display='block';
   try{
     const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    vb.srcObject=stream; await vb.play();
+    vb.srcObject=stream;await vb.play();
   }catch(e){}
 
   if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
@@ -267,28 +363,22 @@ async function startFallback(){
   brainGroup.position.set(0,0,0);
   brainGroup.scale.setScalar(0.55);
   brainGroup.visible=true;
-  setMsg('MUEVETE PARA EXPLORAR · TOCA UNA REGION','found');
+  setMsg('ARRASTRA PARA ROTAR · TOCA UNA REGION','found');
+  updateCounter();
 
   let t=0;
   renderer.setAnimationLoop(()=>{
     t+=0.016;
     pt.position.set(Math.sin(t*0.5)*3,2,Math.cos(t*0.4)*3);
-    if(hasOrient){ currentQuat.slerp(targetQuat,0.06); brainGroup.quaternion.copy(currentQuat); }
-    else { brainGroup.rotation.y+=0.007; }
+    if(!dragActive){
+      if(hasOrient){currentQuat.slerp(targetQuat,0.06);brainGroup.quaternion.copy(currentQuat);}
+      else{brainGroup.rotation.y+=0.007;}
+    }
     renderer.render(scene,camera);
   });
 }
 
-// ── Helpers ───────────────────────────────────────────
 function setMsg(t,c=''){const e=document.getElementById('msg');e.textContent=t;e.className=c;}
-function openPanel(i){
-  const r=REGIONS[i];
-  document.getElementById('p-num').textContent=String(i+1).padStart(2,'0');
-  document.getElementById('p-name').textContent=r.name;
-  document.getElementById('p-desc').textContent=r.desc;
-  document.getElementById('panel').classList.add('open');
-}
-function closePanel(){document.getElementById('panel').classList.remove('open');}
 </script>
 </body>
 </html>
