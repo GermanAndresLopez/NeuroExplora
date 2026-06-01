@@ -12,20 +12,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Pr
 #video-bg{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none}
 canvas{position:fixed!important;top:0!important;left:0!important;width:100%!important;height:100%!important;z-index:1;pointer-events:auto}
 
-/* Glitch overlay — se activa con JS */
 #glitch{position:fixed;inset:0;z-index:5;pointer-events:none;display:none}
 #glitch.on{display:block}
-#glitch::before{
-  content:'';position:absolute;inset:0;
+#glitch::before{content:'';position:absolute;inset:0;
   background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.18) 2px,rgba(0,0,0,.18) 4px);
-  animation:scan .08s steps(1) infinite;
-}
-#glitch::after{
-  content:'';position:absolute;inset:0;
-  background:rgba(0,255,255,.07);
-  mix-blend-mode:screen;
-  animation:shift .12s steps(1) infinite;
-}
+  animation:scan .08s steps(1) infinite}
+#glitch::after{content:'';position:absolute;inset:0;background:rgba(0,255,255,.07);mix-blend-mode:screen;animation:shift .12s steps(1) infinite}
 @keyframes scan{0%{background-position:0 0}100%{background-position:0 100%}}
 @keyframes shift{0%{transform:translateX(-3px)}50%{transform:translateX(4px)}100%{transform:translateX(-2px)}}
 
@@ -33,6 +25,7 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 #top{padding:14px 16px;background:linear-gradient(to bottom,rgba(5,5,8,.88),transparent);display:flex;justify-content:space-between;align-items:flex-start}
 #logo p:first-child{font-size:9px;color:#e56c78;letter-spacing:.2em;opacity:.85}
 #logo p:last-child{font-size:13px;color:#fff;letter-spacing:.1em;margin-top:3px}
+#mode-tag{font-size:7px;color:rgba(80,227,176,.7);letter-spacing:.1em;margin-top:3px}
 #back-btn{pointer-events:auto;padding:9px 14px;background:rgba(5,5,8,.9);border:1px solid rgba(229,108,120,.5);color:#e56c78;font-size:9px;cursor:pointer}
 #bottom{padding:14px 16px 24px;background:linear-gradient(to top,rgba(5,5,8,.78),transparent);text-align:center}
 #msg{font-size:10px;color:rgba(255,255,255,.6);letter-spacing:.08em;line-height:1.8}
@@ -61,7 +54,11 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 
 <div id="hud">
   <div id="top">
-    <div id="logo"><p>// MODO AR</p><p>NEUROEXPLORA</p></div>
+    <div id="logo">
+      <p>// MODO AR</p>
+      <p>NEUROEXPLORA</p>
+      <p id="mode-tag"></p>
+    </div>
     <button id="back-btn" onclick="window.location.href='/'">&#xd7; SALIR</button>
   </div>
   <div id="bottom">
@@ -72,9 +69,9 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 
 <div id="start-overlay">
   <h2>MODO AR</h2>
-  <p>Toca ACTIVAR y luego toca la pantalla para colocar el cerebro. Arrastra para rotarlo. Pellizca para cambiar el tamano.</p>
+  <p>Toca ACTIVAR, apunta al suelo y toca la pantalla para anclar el cerebro en ese punto fisico.</p>
   <button id="start-btn" onclick="startAR()">&#9658;&nbsp; ACTIVAR AR</button>
-  <p style="font-size:8px;color:rgba(255,255,255,.2)">Requiere Chrome en Android con ARCore</p>
+  <p style="font-size:8px;color:rgba(255,255,255,.2)">Chrome en Android con ARCore para tracking real</p>
 </div>
 
 <div id="panel">
@@ -98,7 +95,6 @@ function decodeF32(b64){
 
 // ── Three.js ──────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-// Fondo ligeramente oscuro (40% negro) para resaltar el cerebro
 renderer.setClearColor(0x000000, 0.40);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
@@ -106,8 +102,9 @@ renderer.xr.enabled = true;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
+// IMPORTANTE: en WebXR NO se agrega la camara a la escena
+// Three.js la gestiona internamente via renderer.xr
 const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.01, 100);
-scene.add(camera);
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 const d1=new THREE.DirectionalLight(0xffffff,1.0); d1.position.set(2,3,4); scene.add(d1);
@@ -156,41 +153,30 @@ brainGroup.add(new THREE.Mesh(wGeo.clone(),new THREE.MeshBasicMaterial({color:0x
 
 // Reticle
 const reticleGeo=new THREE.RingGeometry(0.08,0.11,32).rotateX(-Math.PI/2);
-const reticle=new THREE.Mesh(reticleGeo,new THREE.MeshBasicMaterial({color:0xe56c78,transparent:true,opacity:0.75,side:THREE.DoubleSide}));
+const reticle=new THREE.Mesh(reticleGeo,new THREE.MeshBasicMaterial({color:0xe56c78,transparent:true,opacity:0.8,side:THREE.DoubleSide}));
 reticle.matrixAutoUpdate=false;
 reticle.visible=false;
 scene.add(reticle);
 
-// ── Estado de regiones ────────────────────────────────
+// ── Estado regiones ───────────────────────────────────
 const seenRegions=new Set();
 let activeRegion=-1;
 
 function updateColors(){
   regionMeshes.forEach((m,j)=>{
     if(j===activeRegion){
-      m.material.color.setHex(ACTIVE_HEX[j]);
-      m.material.emissive.setHex(ACTIVE_HEX[j]);
-      m.material.emissiveIntensity=0.25;
-      m.material.opacity=1.0;
-    } else if(seenRegions.has(j)){
-      m.material.color.setHex(SEEN_HEX[j]);
-      m.material.emissive.setHex(0x000000);
-      m.material.emissiveIntensity=0;
-      m.material.opacity=0.75;
-    } else {
-      m.material.color.setHex(BASE_HEX[j]);
-      m.material.emissive.setHex(0x000000);
-      m.material.emissiveIntensity=0;
-      m.material.opacity=0.45;
+      m.material.color.setHex(ACTIVE_HEX[j]);m.material.emissive.setHex(ACTIVE_HEX[j]);m.material.emissiveIntensity=0.25;m.material.opacity=1.0;
+    }else if(seenRegions.has(j)){
+      m.material.color.setHex(SEEN_HEX[j]);m.material.emissive.setHex(0x000000);m.material.emissiveIntensity=0;m.material.opacity=0.75;
+    }else{
+      m.material.color.setHex(BASE_HEX[j]);m.material.emissive.setHex(0x000000);m.material.emissiveIntensity=0;m.material.opacity=0.45;
     }
   });
 }
 
 function selectRegion(i){
-  seenRegions.add(i);
-  activeRegion=i;
-  updateColors();
-  updateCounter();
+  seenRegions.add(i); activeRegion=i;
+  updateColors(); updateCounter();
   const r=REGIONS[i];
   document.getElementById('p-num').textContent=String(i+1).padStart(2,'0');
   document.getElementById('p-num').style.color=r.hex;
@@ -199,16 +185,11 @@ function selectRegion(i){
   document.getElementById('p-desc').textContent=r.desc;
   document.getElementById('panel').style.borderColor=r.hex+'44';
   document.getElementById('panel').classList.add('open');
-  // Sincronizar con la app principal
   try{const v=JSON.parse(localStorage.getItem('ne_viewed')||'[]');if(!v.includes(i)){v.push(i);localStorage.setItem('ne_viewed',JSON.stringify(v));};}catch(e){}
   try{new BroadcastChannel('ne_brain').postMessage({type:'regionViewed',index:i,name:r.name});}catch(e){}
 }
 
-function deselectAll(){
-  activeRegion=-1;
-  updateColors();
-  document.getElementById('panel').classList.remove('open');
-}
+function deselectAll(){activeRegion=-1;updateColors();document.getElementById('panel').classList.remove('open');}
 
 function updateCounter(){
   const n=seenRegions.size;
@@ -217,93 +198,57 @@ function updateCounter(){
   el.className=n===6?'complete':'';
 }
 
-// ── Animación glitch al aparecer ──────────────────────
+// ── Glitch al aparecer ────────────────────────────────
 function glitchReveal(basePos){
   const glitch=document.getElementById('glitch');
-
-  // Secuencia: [visible, duración ms]
-  const seq=[[false,60],[true,50],[false,40],[true,80],[false,30],
-             [true,60],[false,40],[true,50],[false,20],[true,70],
-             [false,30],[true,60],[false,20],[true,0]];
-
+  const seq=[[false,60],[true,50],[false,40],[true,80],[false,30],[true,60],[false,40],[true,50],[false,20],[true,70],[false,30],[true,60],[false,20],[true,0]];
   let idx=0;
   glitch.classList.add('on');
-
   function step(){
     if(idx>=seq.length){
       glitch.classList.remove('on');
       brainGroup.visible=true;
       brainGroup.position.copy(basePos);
-      // Restaurar colores normales tras el glitch
-      regionMeshes.forEach(m=>{
-        m.material.emissive.setHex(0x000000);
-        m.material.emissiveIntensity=0;
-      });
-      updateColors();
-      return;
+      regionMeshes.forEach(m=>{m.material.emissive.setHex(0x000000);m.material.emissiveIntensity=0;});
+      updateColors();return;
     }
     const [vis,dur]=seq[idx++];
     brainGroup.visible=vis;
     if(vis){
-      // Jitter de posición y color blanco durante el glitch
-      brainGroup.position.set(
-        basePos.x+(Math.random()-.5)*0.08,
-        basePos.y+(Math.random()-.5)*0.05,
-        basePos.z+(Math.random()-.5)*0.04
-      );
-      regionMeshes.forEach(m=>{
-        m.material.color.setHex(0xffffff);
-        m.material.emissive.setHex(0xffffff);
-        m.material.emissiveIntensity=0.8+Math.random()*0.5;
-        m.material.opacity=0.7+Math.random()*0.3;
-      });
+      brainGroup.position.set(basePos.x+(Math.random()-.5)*.08,basePos.y+(Math.random()-.5)*.05,basePos.z+(Math.random()-.5)*.04);
+      regionMeshes.forEach(m=>{m.material.color.setHex(0xffffff);m.material.emissive.setHex(0xffffff);m.material.emissiveIntensity=0.8+Math.random()*.5;m.material.opacity=0.7+Math.random()*.3;});
     }
-    if(idx<seq.length) setTimeout(step, dur);
-    else step();
+    if(idx<seq.length)setTimeout(step,dur);else step();
   }
-
-  setTimeout(step, 80);
+  setTimeout(step,80);
 }
 
-// ── Touch: drag=rotar, pinch=escalar, tap=seleccionar ─
-let rotX=0,rotY=0;
-let isDragging=false,dragPx=0,dragPy=0;
-let touchStart={x:0,y:0};
-let isPinching=false,pinchStartDist=0,pinchStartScale=1;
-let lastXrCam=camera;
+// ── Touch / Mouse ─────────────────────────────────────
+let rotX=0,rotY=0,isDragging=false,dragPx=0,dragPy=0;
+let touchStart={x:0,y:0},isPinching=false,pinchStartDist=0,pinchStartScale=1;
+let lastXrCam=null;
 let fallbackMode=false;
 
-function getTouchDist(t){
-  const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;
-  return Math.sqrt(dx*dx+dy*dy);
-}
+function getTouchDist(t){const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
 
 renderer.domElement.addEventListener('touchstart',e=>{
   e.preventDefault();
-  if(e.touches.length===2){
-    isDragging=false; isPinching=true;
-    pinchStartDist=getTouchDist(e.touches);
-    pinchStartScale=brainGroup.scale.x;
-  }else if(e.touches.length===1){
-    isPinching=false; isDragging=true;
-    dragPx=e.touches[0].clientX; dragPy=e.touches[0].clientY;
-    touchStart={x:dragPx,y:dragPy};
-  }
+  if(e.touches.length===2){isDragging=false;isPinching=true;pinchStartDist=getTouchDist(e.touches);pinchStartScale=brainGroup.scale.x;}
+  else if(e.touches.length===1){isPinching=false;isDragging=true;dragPx=e.touches[0].clientX;dragPy=e.touches[0].clientY;touchStart={x:dragPx,y:dragPy};}
 },{passive:false});
 
 renderer.domElement.addEventListener('touchmove',e=>{
   e.preventDefault();
   if(e.touches.length===2&&isPinching){
-    const dist=getTouchDist(e.touches);
-    const s=pinchStartScale*(dist/pinchStartDist);
+    const s=pinchStartScale*(getTouchDist(e.touches)/pinchStartDist);
     const mn=fallbackMode?.15:.04,mx=fallbackMode?2.0:.8;
     brainGroup.scale.setScalar(Math.max(mn,Math.min(mx,s)));
   }else if(e.touches.length===1&&isDragging&&brainGroup.visible){
     const cx=e.touches[0].clientX,cy=e.touches[0].clientY;
-    rotY+=(cx-dragPx)*.01; rotX+=(cy-dragPy)*.01;
+    rotY+=(cx-dragPx)*.01;rotX+=(cy-dragPy)*.01;
     rotX=Math.max(-1.4,Math.min(1.4,rotX));
     brainGroup.rotation.set(rotX,rotY,0);
-    dragPx=cx; dragPy=cy;
+    dragPx=cx;dragPy=cy;
   }
 },{passive:false});
 
@@ -314,44 +259,30 @@ renderer.domElement.addEventListener('touchend',e=>{
     if(isDragging){
       isDragging=false;
       const cx=e.changedTouches[0].clientX,cy=e.changedTouches[0].clientY;
-      if(Math.abs(cx-touchStart.x)<10&&Math.abs(cy-touchStart.y)<10) doRaycast(touchStart.x,touchStart.y);
+      if(Math.abs(cx-touchStart.x)<10&&Math.abs(cy-touchStart.y)<10)doRaycast(touchStart.x,touchStart.y);
     }
   }
 },{passive:false});
 
 renderer.domElement.addEventListener('mousedown',e=>{isDragging=true;dragPx=e.clientX;dragPy=e.clientY;touchStart={x:e.clientX,y:e.clientY};});
-window.addEventListener('mousemove',e=>{
-  if(!isDragging||!brainGroup.visible)return;
-  rotY+=(e.clientX-dragPx)*.01;rotX+=(e.clientY-dragPy)*.01;
-  rotX=Math.max(-1.4,Math.min(1.4,rotX));
-  brainGroup.rotation.set(rotX,rotY,0);
-  dragPx=e.clientX;dragPy=e.clientY;
-});
-window.addEventListener('mouseup',e=>{
-  if(isDragging){isDragging=false;if(Math.abs(e.clientX-touchStart.x)<5&&Math.abs(e.clientY-touchStart.y)<5)doRaycast(e.clientX,e.clientY);}
-});
-renderer.domElement.addEventListener('wheel',e=>{
-  e.preventDefault();
-  if(!brainGroup.visible)return;
-  const s=brainGroup.scale.x*(1-e.deltaY*.001);
-  const mn=fallbackMode?.15:.04,mx=fallbackMode?2.0:.8;
-  brainGroup.scale.setScalar(Math.max(mn,Math.min(mx,s)));
-},{passive:false});
+window.addEventListener('mousemove',e=>{if(!isDragging||!brainGroup.visible)return;rotY+=(e.clientX-dragPx)*.01;rotX+=(e.clientY-dragPy)*.01;rotX=Math.max(-1.4,Math.min(1.4,rotX));brainGroup.rotation.set(rotX,rotY,0);dragPx=e.clientX;dragPy=e.clientY;});
+window.addEventListener('mouseup',e=>{if(isDragging){isDragging=false;if(Math.abs(e.clientX-touchStart.x)<5&&Math.abs(e.clientY-touchStart.y)<5)doRaycast(e.clientX,e.clientY);}});
+renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();if(!brainGroup.visible)return;const s=brainGroup.scale.x*(1-e.deltaY*.001);const mn=fallbackMode?.15:.04,mx=fallbackMode?2.0:.8;brainGroup.scale.setScalar(Math.max(mn,Math.min(mx,s)));},{passive:false});
 
 function doRaycast(x,y){
   if(!brainGroup.visible)return;
   if(document.getElementById('panel').classList.contains('open')){deselectAll();return;}
   const nx=(x/innerWidth)*2-1,ny=-(y/innerHeight)*2+1;
   const ray=new THREE.Raycaster();
-  const cam=renderer.xr.isPresenting?lastXrCam:camera;
+  // En WebXR usar la ultima camara XR capturada; en fallback usar camara normal
+  const cam=lastXrCam||camera;
   ray.setFromCamera(new THREE.Vector2(nx,ny),cam);
   const hits=ray.intersectObjects(regionMeshes,false);
-  if(hits.length>0&&hits[0].object.userData.ri!==undefined)
-    selectRegion(hits[0].object.userData.ri);
+  if(hits.length>0&&hits[0].object.userData.ri!==undefined)selectRegion(hits[0].object.userData.ri);
 }
 
-// ── WebXR ─────────────────────────────────────────────
-let hitTestSource=null,brainPlaced=false,xrSession=null;
+// ── WebXR con hit-test ────────────────────────────────
+let hitTestSourceRequested=false,hitTestSource=null,brainPlaced=false,xrSession=null;
 
 async function startAR(){
   document.getElementById('start-overlay').classList.add('hidden');
@@ -360,39 +291,50 @@ async function startAR(){
   try{
     xrSession=await navigator.xr.requestSession('immersive-ar',{
       requiredFeatures:['hit-test'],
-      optionalFeatures:['dom-overlay'],
+      optionalFeatures:['dom-overlay','local-floor'],
       domOverlay:{root:document.body}
     });
   }catch(e){return startFallback();}
 
-  renderer.xr.setReferenceSpaceType('local');
+  // local-floor da mejor tracking de mundo físico; local como fallback
+  try{renderer.xr.setReferenceSpaceType('local-floor');}catch(e){renderer.xr.setReferenceSpaceType('local');}
   await renderer.xr.setSession(xrSession);
 
-  try{
-    const vs=await xrSession.requestReferenceSpace('viewer');
-    hitTestSource=await xrSession.requestHitTestSource({space:vs});
-  }catch(e){hitTestSource=null;}
+  document.getElementById('mode-tag').textContent='WEBXR · ARCORE';
 
-  xrSession.addEventListener('end',()=>{hitTestSource=null;brainPlaced=false;});
+  xrSession.addEventListener('end',()=>{hitTestSource=null;hitTestSourceRequested=false;brainPlaced=false;});
 
+  // Controller → tap para colocar cerebro
   const controller=renderer.xr.getController(0);
   controller.addEventListener('select',onXrTap);
   scene.add(controller);
 
   brainGroup.scale.setScalar(0.15);
-  setMsg('TOCA LA PANTALLA PARA COLOCAR EL CEREBRO');
+  setMsg('APUNTA AL SUELO Y TOCA PARA COLOCAR');
   updateCounter();
 
   renderer.setAnimationLoop((time,frame)=>{
     if(frame){
+      // Capturar cámara XR para raycasting
       lastXrCam=renderer.xr.getCamera(camera);
-      if(hitTestSource&&!brainPlaced){
-        const refSpace=renderer.xr.getReferenceSpace();
-        const hits=frame.getHitTestResults(hitTestSource);
-        if(hits.length>0){
-          const pose=hits[0].getPose(refSpace);
-          if(pose){reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);}
-        }else reticle.visible=false;
+
+      // Hit-test: solo hasta que se coloque el cerebro
+      if(!brainPlaced){
+        if(!hitTestSourceRequested){
+          const session=renderer.xr.getSession();
+          session.requestReferenceSpace('viewer').then(vs=>{
+            session.requestHitTestSource({space:vs}).then(src=>{hitTestSource=src;});
+          });
+          hitTestSourceRequested=true;
+        }
+        if(hitTestSource){
+          const refSpace=renderer.xr.getReferenceSpace();
+          const hits=frame.getHitTestResults(hitTestSource);
+          if(hits.length>0){
+            const pose=hits[0].getPose(refSpace);
+            if(pose){reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);}
+          }else reticle.visible=false;
+        }
       }
     }
     pt.position.set(Math.sin(Date.now()*.0005)*2,1.5,Math.cos(Date.now()*.0004)*2);
@@ -404,27 +346,32 @@ function onXrTap(){
   if(brainPlaced)return;
   const basePos=new THREE.Vector3();
   if(reticle.visible){
+    // Anclar en la superficie física detectada
     basePos.setFromMatrixPosition(reticle.matrix);
   }else{
+    // Sin superficie: 1.5m adelante en el espacio XR
     const xrCam=renderer.xr.getCamera(camera);
-    const dir=new THREE.Vector3();
+    const dir=new THREE.Vector3(0,0,-1).applyQuaternion(xrCam.quaternion);
     xrCam.getWorldPosition(basePos);
-    xrCam.getWorldDirection(dir);
     basePos.addScaledVector(dir,1.5);
     basePos.y-=0.3;
   }
+  // Posición fija en el espacio físico — NO se actualiza más
   brainGroup.position.copy(basePos);
-  brainGroup.rotation.set(0,0,0); rotX=0;rotY=0;
+  brainGroup.rotation.set(0,0,0);rotX=0;rotY=0;
   reticle.visible=false;
   brainPlaced=true;
+  // Detener hit-test para ahorrar recursos
+  if(hitTestSource){hitTestSource.cancel&&hitTestSource.cancel();hitTestSource=null;}
   setMsg('ARRASTRA · PELLIZCA PARA ZOOM · TOCA UNA REGION','found');
   updateCounter();
   glitchReveal(basePos);
 }
 
-// ── Fallback: cámara, cerebro estático ───────────────
+// ── Fallback: cámara trasera, sin ARCore ─────────────
 async function startFallback(){
   fallbackMode=true;
+  document.getElementById('mode-tag').textContent='MODO CAMARA';
   const vb=document.getElementById('video-bg');
   vb.style.display='block';
   try{
@@ -436,11 +383,9 @@ async function startFallback(){
   brainGroup.position.set(0,0,0);
   brainGroup.scale.setScalar(0.55);
   brainGroup.rotation.set(0,0,0);
-  rotX=0;rotY=0;
-  brainPlaced=true;
+  rotX=0;rotY=0;brainPlaced=true;
   setMsg('ARRASTRA · PELLIZCA PARA ZOOM · TOCA UNA REGION','found');
   updateCounter();
-
   glitchReveal(new THREE.Vector3(0,0,0));
 
   let t=0;
