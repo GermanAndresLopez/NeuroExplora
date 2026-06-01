@@ -99,7 +99,7 @@ document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.01, 100);
-camera.position.set(0, 0, 3);
+camera.position.set(0, 0, 0); // cámara en el origen, rota con el giroscopio
 scene.add(camera);
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.5));
@@ -194,11 +194,10 @@ function buildReveal(){
 //
 // El arrastre manual añade un offset encima del world-lock.
 //
-const deviceQuat      = new THREE.Quaternion(); // orientación absoluta del teléfono
-const manualQuat      = new THREE.Quaternion(); // órbita manual acumulada
-const initialDeviceQuat = new THREE.Quaternion(); // orientación al momento de colocar
-let orbitV0 = new THREE.Vector3(0,0,1); // dirección unitaria cámara→cerebro al colocar
-let orbitR  = 3;                        // radio de órbita
+const deviceQuat  = new THREE.Quaternion(); // orientación absoluta del teléfono
+const manualQuat  = new THREE.Quaternion(); // rotación manual acumulada del cerebro
+const currentQuat = new THREE.Quaternion(); // suavizado para brainGroup
+const _camQuat    = new THREE.Quaternion(); // suavizado para la cámara
 const _euler      = new THREE.Euler();
 const _screenCorr = new THREE.Quaternion(-Math.sqrt(0.5),0,0,Math.sqrt(0.5));
 let hasGyro = false;
@@ -228,16 +227,15 @@ function requestGyro(){
 // ── Colocar cerebro en posición del toque ────────────
 const _pr=new THREE.Raycaster(), _pv=new THREE.Vector2();
 function placeBrainAtTap(sx,sy){
+  // Aplicar orientación actual del teléfono a la cámara antes de castear
+  camera.quaternion.copy(hasGyro ? deviceQuat : new THREE.Quaternion());
   _pv.set((sx/innerWidth)*2-1, -(sy/innerHeight)*2+1);
   _pr.setFromCamera(_pv,camera);
   const pos=new THREE.Vector3();
-  _pr.ray.at(2.5,pos); // 2.5 unidades frente a la cámara
+  _pr.ray.at(3,pos); // 3 unidades frente a la cámara
   brainGroup.position.copy(pos);
-  const v0=camera.position.clone().sub(pos);
-  orbitR=v0.length();
-  orbitV0=v0.clone().normalize();
-  initialDeviceQuat.copy(deviceQuat);
   manualQuat.identity();
+  currentQuat.identity();
 }
 
 // ── Touch / Mouse ─────────────────────────────────────
@@ -333,18 +331,17 @@ renderer.setAnimationLoop(()=>{
   t+=0.016;
   pt.position.set(Math.sin(t*.5)*3,2,Math.cos(t*.4)*3);
 
+  // La cámara rota con el giroscopio (como en AR real)
+  // El cerebro queda fijo en el mundo — aparece en la posición física donde se tocó
+  if(hasGyro){
+    _camQuat.slerp(deviceQuat, 0.18);
+    camera.quaternion.copy(_camQuat);
+  }
+
+  // El arrastre manual gira el cerebro en su propio eje (inspección)
   if(brainPlaced){
-    // Calcula rotación delta del teléfono desde el momento de colocación
-    const deltaQuat = hasGyro
-      ? initialDeviceQuat.clone().invert().multiply(deviceQuat)
-      : new THREE.Quaternion();
-    // Combina órbita manual + delta del giroscopio
-    const combinedQuat = manualQuat.clone().multiply(deltaQuat);
-    // Nuevo offset de cámara orbitando alrededor del cerebro
-    const orbitOffset = orbitV0.clone().applyQuaternion(combinedQuat).multiplyScalar(orbitR);
-    const targetCamPos = brainGroup.position.clone().add(orbitOffset);
-    camera.position.lerp(targetCamPos, 0.15);
-    camera.lookAt(brainGroup.position);
+    currentQuat.slerp(manualQuat, 0.12);
+    brainGroup.quaternion.copy(currentQuat);
   }
 
   renderer.render(scene,camera);
