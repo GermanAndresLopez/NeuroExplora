@@ -20,35 +20,27 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 #bottom{padding:14px 16px 24px;background:linear-gradient(to top,rgba(5,5,8,.78),transparent);text-align:center}
 #msg{font-size:10px;color:rgba(255,255,255,.6);letter-spacing:.08em;line-height:1.8}
 #msg.found{color:#50e3b0}
-#counter{font-size:9px;color:rgba(255,255,255,.45);letter-spacing:.07em;margin-top:6px;transition:color .3s}
+#counter{font-size:9px;color:rgba(255,255,255,.45);letter-spacing:.07em;margin-top:6px}
 #counter.complete{color:#50e3b0}
-
-/* Indicador de tracking QR */
-#qr-indicator{position:fixed;top:50%;left:50%;transform:translate(-50%,-58%);z-index:9;pointer-events:none;transition:opacity .4s}
-#qr-indicator .corner{position:absolute;width:24px;height:24px}
-#qr-indicator .tl{top:0;left:0;border-top:2px solid #e56c78;border-left:2px solid #e56c78}
-#qr-indicator .tr{top:0;right:0;border-top:2px solid #e56c78;border-right:2px solid #e56c78}
-#qr-indicator .bl{bottom:0;left:0;border-bottom:2px solid #e56c78;border-left:2px solid #e56c78}
-#qr-indicator .br{bottom:0;right:0;border-bottom:2px solid #e56c78;border-right:2px solid #e56c78}
-#qr-indicator .scan{position:absolute;left:4px;right:4px;height:1px;background:linear-gradient(90deg,transparent,#e56c78,transparent);animation:sy 2s ease-in-out infinite}
+#qr-frame{position:fixed;top:50%;left:50%;transform:translate(-50%,-58%);width:160px;height:160px;z-index:9;pointer-events:none;transition:opacity .4s}
+.co{position:absolute;width:24px;height:24px}
+.tl{top:0;left:0;border-top:2px solid #e56c78;border-left:2px solid #e56c78}
+.tr{top:0;right:0;border-top:2px solid #e56c78;border-right:2px solid #e56c78}
+.bl{bottom:0;left:0;border-bottom:2px solid #e56c78;border-left:2px solid #e56c78}
+.br{bottom:0;right:0;border-bottom:2px solid #e56c78;border-right:2px solid #e56c78}
+.sl{position:absolute;left:4px;right:4px;height:1px;background:linear-gradient(90deg,transparent,#e56c78,transparent);animation:sy 2s ease-in-out infinite}
 @keyframes sy{0%{top:4px;opacity:.3}50%{top:148px;opacity:1}100%{top:4px;opacity:.3}}
-#qr-indicator.tracking{border-color:#50e3b0}
-#qr-indicator.tracking .corner{border-color:#50e3b0}
-
-/* Countdown banner */
 #countdown-banner{position:fixed;top:0;left:0;right:0;z-index:110;background:rgba(229,108,120,.18);border-bottom:1px solid rgba(229,108,120,.35);backdrop-filter:blur(4px);padding:10px 16px;display:none;align-items:center;justify-content:center;gap:10px}
 #countdown-banner.show{display:flex}
-#cd-label{font-size:9px;color:#e56c78;letter-spacing:.12em;font-family:'Courier New',monospace}
+.cd-lbl{font-size:9px;color:#e56c78;letter-spacing:.12em;font-family:'Courier New',monospace}
 #cd-num{font-size:18px;color:#fff;font-family:'Press Start 2P',monospace;line-height:1;text-shadow:0 0 10px #e56c78;min-width:22px;text-align:center}
-
-#start-overlay{position:fixed;inset:0;z-index:200;background:rgba(5,5,8,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:28px}
+#start-overlay{position:fixed;inset:0;z-index:200;background:rgba(5,5,8,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:28px}
 #start-overlay.hidden{display:none}
 #start-overlay h2{font-size:11px;color:#e56c78;letter-spacing:.12em;line-height:2;text-align:center}
 .inst{display:flex;align-items:flex-start;gap:12px;max-width:300px;text-align:left}
 .inst-n{flex-shrink:0;width:20px;height:20px;border:1px solid rgba(229,108,120,.5);display:flex;align-items:center;justify-content:center;font-size:8px;color:#e56c78}
 .inst p{font-size:9px;color:rgba(255,255,255,.45);line-height:1.9}
 #start-btn{padding:14px 32px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:11px;font-family:'Press Start 2P',monospace;letter-spacing:.08em;box-shadow:4px 4px 0 rgba(229,108,120,.3);pointer-events:auto;margin-top:4px}
-
 #complete-modal{position:fixed;inset:0;z-index:300;background:rgba(5,5,8,.92);display:none;align-items:center;justify-content:center}
 #complete-modal.show{display:flex}
 #complete-inner{width:88%;max-width:340px;background:#0d0d1a;border:1px solid rgba(229,108,120,.35);padding:28px 22px;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center}
@@ -57,7 +49,6 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 #complete-title{font-size:14px;color:#fff;letter-spacing:.1em;line-height:1.6;margin-top:4px}
 #complete-desc{font-size:10px;color:rgba(255,255,255,.5);font-family:monospace;line-height:2}
 #quiz-btn{width:100%;padding:16px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:11px;font-family:'Press Start 2P',monospace;letter-spacing:.1em;box-shadow:3px 3px 0 rgba(229,108,120,.3);pointer-events:auto}
-
 #panel{position:fixed;bottom:0;left:0;right:0;z-index:150;background:rgba(5,5,8,.97);border-top:2px solid rgba(229,108,120,.3);padding:20px 18px 36px;transform:translateY(100%);transition:transform .3s ease}
 #panel.open{transform:translateY(0)}
 #p-num{font-size:32px;font-weight:700;opacity:.12;line-height:1;margin-bottom:2px;font-family:monospace;color:#fff}
@@ -67,21 +58,13 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 </style>
 </head>
 <body>
-
 <video id="video-bg" autoplay playsinline muted></video>
-
-<div id="qr-indicator" style="width:160px;height:160px">
-  <div class="corner tl"></div><div class="corner tr"></div>
-  <div class="corner bl"></div><div class="corner br"></div>
-  <div class="scan"></div>
-</div>
-
+<div id="qr-frame"><div class="co tl"></div><div class="co tr"></div><div class="co bl"></div><div class="co br"></div><div class="sl"></div></div>
 <div id="countdown-banner">
-  <span id="cd-label">&#9733; ZONAS COMPLETADAS &mdash; QUIZ EN</span>
+  <span class="cd-lbl">&#9733; ZONAS COMPLETADAS &mdash; QUIZ EN</span>
   <span id="cd-num">10</span>
-  <span id="cd-label">SEG...</span>
+  <span class="cd-lbl">SEG...</span>
 </div>
-
 <div id="hud">
   <div id="top">
     <div id="logo"><p>// MODO AR</p><p>NEUROEXPLORA</p></div>
@@ -89,16 +72,14 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
   </div>
   <div id="bottom"><p id="msg">BUSCANDO QR...</p><p id="counter">0 / 6 REGIONES</p></div>
 </div>
-
 <div id="start-overlay">
   <h2>MODO AR</h2>
-  <div class="inst"><div class="inst-n">1</div><p>Abre cualquier QR en otra pantalla, o imprimelo.</p></div>
+  <div class="inst"><div class="inst-n">1</div><p>Abre cualquier codigo QR en otra pantalla o imprimelo.</p></div>
   <div class="inst"><div class="inst-n">2</div><p>Pulsa ACTIVAR y concede permiso de camara.</p></div>
-  <div class="inst"><div class="inst-n">3</div><p>Apunta al QR — el cerebro aparece encima.</p></div>
+  <div class="inst"><div class="inst-n">3</div><p>Apunta al QR — el cerebro aparece anclado encima.</p></div>
   <div class="inst"><div class="inst-n">4</div><p>Arrastra para rotar. Pellizca para cambiar tamano.</p></div>
   <button id="start-btn" onclick="startAR()">&#9658;&nbsp; ACTIVAR AR</button>
 </div>
-
 <div id="complete-modal">
   <div id="complete-inner">
     <div id="complete-stars">&#9733; &#9733; &#9733;</div>
@@ -107,7 +88,6 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
     <button id="quiz-btn" onclick="goToQuiz()">&gt; IR AL QUIZ</button>
   </div>
 </div>
-
 <div id="panel">
   <button id="p-close" onclick="deselectAll()">&#xd7;</button>
   <div id="p-num">01</div><div id="p-name"></div><div id="p-desc"></div>
@@ -125,7 +105,7 @@ function decodeF32(b64){
   return new Float32Array(buf);
 }
 
-// ── Three.js ──────────────────────────────────────────
+// ── Three.js setup ────────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
 renderer.setClearColor(0x000000, 0.35);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -133,6 +113,7 @@ renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
+// Cámara en z=3 mirando al origen — escala igual que en brain_total.html
 const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.01, 100);
 camera.position.set(0, 0, 3);
 scene.add(camera);
@@ -142,12 +123,16 @@ const d1=new THREE.DirectionalLight(0xffffff,1.0); d1.position.set(2,3,4); scene
 const d2=new THREE.DirectionalLight(0x8899ff,0.35); d2.position.set(-3,-1,-2); scene.add(d2);
 const pt=new THREE.PointLight(0xffffff,0.6,20); scene.add(pt);
 
-window.addEventListener('resize',()=>{ renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); });
+window.addEventListener('resize',()=>{
+  renderer.setSize(innerWidth,innerHeight);
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+});
 
 // ── Cerebro ───────────────────────────────────────────
-const BASE_HEX  = [0x1a2444, 0x112a1e, 0x251135, 0x2a2210, 0x2a1808, 0x2a0d18];
-const ACTIVE_HEX= [0x4d88ff, 0x44dd88, 0xbb55ff, 0xffcc33, 0xff7733, 0xff4477];
-const SEEN_HEX  = [0x2a4a99, 0x1f6644, 0x5a2a99, 0x887033, 0x883a22, 0x881a33];
+const BASE_HEX  = [0x1a2444,0x112a1e,0x251135,0x2a2210,0x2a1808,0x2a0d18];
+const ACTIVE_HEX= [0x4d88ff,0x44dd88,0xbb55ff,0xffcc33,0xff7733,0xff4477];
+const SEEN_HEX  = [0x2a4a99,0x1f6644,0x5a2a99,0x887033,0x883a22,0x881a33];
 
 const brainGroup=new THREE.Group(); brainGroup.visible=false; scene.add(brainGroup);
 const regionMeshes=[];
@@ -155,17 +140,20 @@ REGION_B64.forEach((b64,i)=>{
   const geo=new THREE.BufferGeometry();
   geo.setAttribute('position',new THREE.Float32BufferAttribute(decodeF32(b64),3));
   geo.computeVertexNormals();
-  const mat=new THREE.MeshPhongMaterial({color:BASE_HEX[i],flatShading:true,shininess:80,specular:new THREE.Color(ACTIVE_HEX[i]).multiplyScalar(0.1),transparent:true,opacity:0.45});
+  const mat=new THREE.MeshPhongMaterial({color:BASE_HEX[i],flatShading:true,shininess:80,
+    specular:new THREE.Color(ACTIVE_HEX[i]).multiplyScalar(0.1),transparent:true,opacity:0.45});
   const mesh=new THREE.Mesh(geo,mat); mesh.userData.ri=i; mesh.visible=false;
   brainGroup.add(mesh); regionMeshes.push(mesh);
 });
 const allPos=[];
 REGION_B64.forEach(b64=>{const f=decodeF32(b64);for(let j=0;j<f.length;j++)allPos.push(f[j]);});
-const wGeo=new THREE.BufferGeometry(); wGeo.setAttribute('position',new THREE.Float32BufferAttribute(allPos,3)); wGeo.computeVertexNormals();
+const wGeo=new THREE.BufferGeometry();
+wGeo.setAttribute('position',new THREE.Float32BufferAttribute(allPos,3));
+wGeo.computeVertexNormals();
 brainGroup.add(new THREE.Mesh(wGeo,new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.08})));
 brainGroup.add(new THREE.Mesh(wGeo.clone(),new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.04})));
 
-// ── Regiones ──────────────────────────────────────────
+// ── Regiones / conteo ─────────────────────────────────
 const seenRegions=new Set();
 let activeRegion=-1, countdownStarted=false;
 
@@ -200,21 +188,17 @@ function updateCounter(){const n=seenRegions.size;const el=document.getElementBy
 let cdInterval=null;
 function startCountdown(){
   document.getElementById('panel').classList.remove('open');
-  let secs=10;
-  document.getElementById('cd-num').textContent=secs;
+  let s=10; document.getElementById('cd-num').textContent=s;
   document.getElementById('countdown-banner').classList.add('show');
-  cdInterval=setInterval(()=>{
-    secs--;
-    document.getElementById('cd-num').textContent=secs;
-    if(secs<=0){clearInterval(cdInterval);document.getElementById('countdown-banner').classList.remove('show');showCompleteModal();}
+  cdInterval=setInterval(()=>{s--;document.getElementById('cd-num').textContent=s;
+    if(s<=0){clearInterval(cdInterval);document.getElementById('countdown-banner').classList.remove('show');document.getElementById('complete-modal').classList.add('show');}
   },1000);
 }
-function showCompleteModal(){document.getElementById('complete-modal').classList.add('show');}
 function goToQuiz(){window.location.href='/?startQuiz=1';}
 
-// ── Animación build-up ────────────────────────────────
-function buildReveal(finalPos){
-  brainGroup.position.copy(finalPos);
+// ── Build-up animation ────────────────────────────────
+function buildReveal(pos){
+  brainGroup.position.copy(pos);
   brainGroup.visible=true;
   regionMeshes.forEach(m=>{m.visible=false;m.material.opacity=0;});
   regionMeshes.forEach((mesh,i)=>{
@@ -222,11 +206,9 @@ function buildReveal(finalPos){
       mesh.visible=true;
       mesh.material.color.setHex(ACTIVE_HEX[i]);
       mesh.material.emissive.setHex(ACTIVE_HEX[i]);
-      mesh.material.emissiveIntensity=0.9;
-      mesh.material.opacity=1.0;
+      mesh.material.emissiveIntensity=0.9; mesh.material.opacity=1.0;
       setTimeout(()=>{
-        mesh.material.emissiveIntensity=0;
-        mesh.material.opacity=0.45;
+        mesh.material.emissiveIntensity=0; mesh.material.opacity=0.45;
         mesh.material.color.setHex(BASE_HEX[i]);
         if(i===regionMeshes.length-1) setTimeout(updateColors,80);
       },280);
@@ -234,56 +216,114 @@ function buildReveal(finalPos){
   });
 }
 
-// ── QR tracking con jsQR ──────────────────────────────
-const scanCanvas=document.createElement('canvas');
-const scanCtx=scanCanvas.getContext('2d',{willReadFrequently:true});
-const TRACK_DEPTH=2.8;  // distancia de la cámara al cerebro (scene units)
-let qrDetected=false, qrLostFrames=0;
-let targetPos=new THREE.Vector3();
+// ── QR → posición 3D con estimación de profundidad ────
+//
+// Modelo de cámara pinhole:
+//   depth_scene = (QR_SIZE_SCENE * focal_px) / qr_px
+//
+// QR_SIZE_SCENE: tamaño del QR en unidades de escena.
+// Calibrado para que un QR ~200px de lado en pantalla
+// coloque el cerebro a ~1.5 unidades de escena de la cámara.
+//
+const QR_SIZE_SCENE = 0.45;
 
-function qrCenterToWorld(cx, cy, videoW, videoH){
-  // De espacio video → espacio pantalla → NDC → rayo → mundo
-  const sx=(cx/videoW)*innerWidth;
-  const sy=(cy/videoH)*innerHeight;
-  const nx=(sx/innerWidth)*2-1;
-  const ny=-((sy/innerHeight)*2-1);
-  const v=new THREE.Vector3(nx,ny,0.5).unproject(camera);
-  const dir=v.clone().sub(camera.position).normalize();
-  return camera.position.clone().addScaledVector(dir,TRACK_DEPTH);
+// El canvas de escaneo replica object-fit:cover del video
+// para que las coordenadas del QR coincidan con la pantalla.
+const scanCanvas = document.createElement('canvas');
+const scanCtx = scanCanvas.getContext('2d', {willReadFrequently:true});
+
+function drawCover(video, canvas, ctx){
+  const vr = video.videoWidth / video.videoHeight;
+  const cr = canvas.width / canvas.height;
+  let sx=0, sy=0, sw=video.videoWidth, sh=video.videoHeight;
+  if(vr > cr){ sw = sh * cr; sx = (video.videoWidth - sw) / 2; }
+  else       { sh = sw / cr; sy = (video.videoHeight - sh) / 2; }
+  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
 }
 
+function qrTo3D(loc, cw, ch){
+  // 4 esquinas del QR en espacio del canvas (= espacio pantalla por relación 1:1)
+  const pts = [loc.topLeftCorner, loc.topRightCorner, loc.bottomRightCorner, loc.bottomLeftCorner];
+
+  // Centro
+  const cx = pts.reduce((s,p)=>s+p.x,0)/4;
+  const cy = pts.reduce((s,p)=>s+p.y,0)/4;
+
+  // Longitud media de las 4 aristas en píxeles de pantalla
+  const edgeLengths = [
+    Math.hypot(pts[1].x-pts[0].x, pts[1].y-pts[0].y),
+    Math.hypot(pts[2].x-pts[1].x, pts[2].y-pts[1].y),
+    Math.hypot(pts[3].x-pts[2].x, pts[3].y-pts[2].y),
+    Math.hypot(pts[0].x-pts[3].x, pts[0].y-pts[3].y),
+  ];
+  const avgEdgePx = edgeLengths.reduce((s,v)=>s+v,0)/4;
+
+  // Longitud focal en píxeles a partir del FOV vertical de la cámara
+  const fovRad = camera.fov * Math.PI / 180;
+  const focalPx = (ch / 2) / Math.tan(fovRad / 2);
+
+  // Profundidad estimada (unidades de escena)
+  const depth = (QR_SIZE_SCENE * focalPx) / avgEdgePx;
+
+  // NDC del centro del QR
+  const ndcX = (cx / cw) * 2 - 1;
+  const ndcY = -((cy / ch) * 2 - 1);
+
+  // Rayo desde cámara a través del punto de pantalla
+  const rayTarget = new THREE.Vector3(ndcX, ndcY, 0.5).unproject(camera);
+  const rayDir = rayTarget.clone().sub(camera.position).normalize();
+
+  return camera.position.clone().addScaledVector(rayDir, depth);
+}
+
+// ── QR tracking loop ──────────────────────────────────
+let qrVisible = false, qrLostFrames = 0;
+const targetPos = new THREE.Vector3();
+
 function scanQR(){
-  const video=document.getElementById('video-bg');
-  if(!video.videoWidth||!video.videoHeight) return;
-  const W=Math.min(video.videoWidth,480);
-  const H=Math.round(W*video.videoHeight/video.videoWidth);
-  scanCanvas.width=W; scanCanvas.height=H;
-  scanCtx.drawImage(video,0,0,W,H);
-  const imageData=scanCtx.getImageData(0,0,W,H);
-  const code=jsQR(imageData.data,W,H,{inversionAttempts:'dontInvert'});
+  const video = document.getElementById('video-bg');
+  if(!video.videoWidth || !video.videoHeight) return;
+
+  // Escanear a mitad de resolución de pantalla para rendimiento
+  const SW = Math.round(innerWidth  * 0.5);
+  const SH = Math.round(innerHeight * 0.5);
+  scanCanvas.width  = SW;
+  scanCanvas.height = SH;
+  drawCover(video, scanCanvas, scanCtx);
+
+  const imageData = scanCtx.getImageData(0, 0, SW, SH);
+  const code = jsQR(imageData.data, SW, SH, {inversionAttempts:'dontInvert'});
+
   if(code){
-    qrLostFrames=0;
-    const loc=code.location;
-    const cx=(loc.topLeftCorner.x+loc.topRightCorner.x+loc.bottomLeftCorner.x+loc.bottomRightCorner.x)/4;
-    const cy=(loc.topLeftCorner.y+loc.topRightCorner.y+loc.bottomLeftCorner.y+loc.bottomRightCorner.y)/4;
-    const worldPos=qrCenterToWorld(cx,cy,W,H);
-    if(!qrDetected){
-      qrDetected=true;
-      targetPos.copy(worldPos);
+    qrLostFrames = 0;
+
+    // Escalar coordenadas del canvas a pantalla completa
+    const scaledLoc = {
+      topLeftCorner:     {x:code.location.topLeftCorner.x*2,     y:code.location.topLeftCorner.y*2},
+      topRightCorner:    {x:code.location.topRightCorner.x*2,    y:code.location.topRightCorner.y*2},
+      bottomRightCorner: {x:code.location.bottomRightCorner.x*2, y:code.location.bottomRightCorner.y*2},
+      bottomLeftCorner:  {x:code.location.bottomLeftCorner.x*2,  y:code.location.bottomLeftCorner.y*2},
+    };
+
+    const pos3D = qrTo3D(scaledLoc, innerWidth, innerHeight);
+    targetPos.copy(pos3D);
+
+    if(!qrVisible){
+      qrVisible = true;
       brainGroup.scale.setScalar(0.55);
-      buildReveal(worldPos);
+      buildReveal(pos3D);
+      document.getElementById('qr-frame').style.opacity = '0';
       setMsg('TOCA UNA REGION PARA EXPLORAR','found');
-      document.getElementById('qr-indicator').style.opacity='0';
-    } else {
-      // Smooth tracking: sigue el QR suavemente
-      targetPos.copy(worldPos);
+      updateCounter();
     }
   } else {
     qrLostFrames++;
-    if(qrLostFrames>15 && qrDetected){
-      setMsg('MANTÉN EL QR VISIBLE','');
+    if(qrLostFrames === 20){
+      setMsg('APUNTA AL QR PARA SEGUIR','');
+      document.getElementById('qr-frame').style.opacity = '1';
     }
-    if(!qrDetected && qrLostFrames%8===0){
+    if(qrLostFrames === 80){
+      // Llevar al estado de "buscando" si se perdio mucho tiempo
       setMsg('BUSCANDO QR...','');
     }
   }
@@ -319,8 +359,7 @@ renderer.domElement.addEventListener('touchend',e=>{
   e.preventDefault();
   if(e.touches.length===0){
     isPinching=false;
-    if(isDragging){
-      isDragging=false;
+    if(isDragging){isDragging=false;
       const cx=e.changedTouches[0].clientX,cy=e.changedTouches[0].clientY;
       if(Math.abs(cx-touchStart.x)<10&&Math.abs(cy-touchStart.y)<10) doRaycast(touchStart.x,touchStart.y);
     }
@@ -348,14 +387,14 @@ let t=0;
 renderer.setAnimationLoop(()=>{
   t+=0.016;
   pt.position.set(Math.sin(t*.5)*3,2,Math.cos(t*.4)*3);
-  // Smooth tracking: brain sigue la posición del QR
-  if(qrDetected && !isDragging){
-    brainGroup.position.lerp(targetPos, 0.15);
+  // Seguir posición del QR suavemente solo si no hay drag activo
+  if(qrVisible && !isDragging){
+    brainGroup.position.lerp(targetPos, 0.25);
   }
   renderer.render(scene,camera);
 });
 
-// ── Inicio: solicitar cámara ──────────────────────────
+// ── Iniciar cámara ────────────────────────────────────
 async function startAR(){
   document.getElementById('start-overlay').classList.add('hidden');
   const video=document.getElementById('video-bg');
@@ -364,11 +403,7 @@ async function startAR(){
       video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}
     });
     video.srcObject=stream; await video.play();
-  }catch(e){
-    setMsg('SIN ACCESO A CAMARA','');
-    return;
-  }
-  // Arrancar escaneo de QR cada 80ms (~12fps)
+  }catch(e){setMsg('SIN ACCESO A CAMARA','');return;}
   setInterval(scanQR, 80);
   updateCounter();
 }
