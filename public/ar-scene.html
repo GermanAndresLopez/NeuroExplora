@@ -194,12 +194,13 @@ function buildReveal(){
 //
 // El arrastre manual añade un offset encima del world-lock.
 //
-const deviceQuat   = new THREE.Quaternion();   // orientación absoluta del teléfono
-const manualQuat   = new THREE.Quaternion();   // giro manual acumulado
-const currentQuat  = new THREE.Quaternion();   // quaternion suavizado aplicado al cerebro
-const _euler       = new THREE.Euler();
-// Corrección de eje para pantalla portrait: -90° en X
-const _screenCorr  = new THREE.Quaternion(-Math.sqrt(0.5),0,0,Math.sqrt(0.5));
+const deviceQuat      = new THREE.Quaternion(); // orientación absoluta del teléfono
+const manualQuat      = new THREE.Quaternion(); // órbita manual acumulada
+const initialDeviceQuat = new THREE.Quaternion(); // orientación al momento de colocar
+let orbitV0 = new THREE.Vector3(0,0,1); // dirección unitaria cámara→cerebro al colocar
+let orbitR  = 3;                        // radio de órbita
+const _euler      = new THREE.Euler();
+const _screenCorr = new THREE.Quaternion(-Math.sqrt(0.5),0,0,Math.sqrt(0.5));
 let hasGyro = false;
 
 function onOrientation(e){
@@ -222,6 +223,21 @@ function requestGyro(){
   }else{
     window.addEventListener('deviceorientation',onOrientation,true);
   }
+}
+
+// ── Colocar cerebro en posición del toque ────────────
+const _pr=new THREE.Raycaster(), _pv=new THREE.Vector2();
+function placeBrainAtTap(sx,sy){
+  _pv.set((sx/innerWidth)*2-1, -(sy/innerHeight)*2+1);
+  _pr.setFromCamera(_pv,camera);
+  const pos=new THREE.Vector3();
+  _pr.ray.at(2.5,pos); // 2.5 unidades frente a la cámara
+  brainGroup.position.copy(pos);
+  const v0=camera.position.clone().sub(pos);
+  orbitR=v0.length();
+  orbitV0=v0.clone().normalize();
+  initialDeviceQuat.copy(deviceQuat);
+  manualQuat.identity();
 }
 
 // ── Touch / Mouse ─────────────────────────────────────
@@ -264,8 +280,9 @@ renderer.domElement.addEventListener('touchend',e=>{
       if(wasTap){
         if(!brainPlaced){
           brainPlaced=true;
+          placeBrainAtTap(cx,cy);
           buildReveal();
-          setMsg('INCLINA O ARRASTRA PARA ROTAR · TOCA UNA REGION','found');
+          setMsg('GIRA EL CELULAR O ARRASTRA PARA ORBITAR · TOCA UNA REGION','found');
           updateCounter();
         } else {
           doRaycast(cx,cy);
@@ -287,7 +304,7 @@ window.addEventListener('mousemove',e=>{
 window.addEventListener('mouseup',e=>{
   if(isDragging){isDragging=false;
     if(Math.abs(e.clientX-touchStart.x)<5&&Math.abs(e.clientY-touchStart.y)<5){
-      if(!brainPlaced){brainPlaced=true;buildReveal();setMsg('INCLINA O ARRASTRA PARA ROTAR · TOCA UNA REGION','found');updateCounter();}
+      if(!brainPlaced){brainPlaced=true;placeBrainAtTap(e.clientX,e.clientY);buildReveal();setMsg('GIRA EL CELULAR O ARRASTRA PARA ORBITAR · TOCA UNA REGION','found');updateCounter();}
       else doRaycast(e.clientX,e.clientY);
     }
   }
@@ -317,17 +334,17 @@ renderer.setAnimationLoop(()=>{
   pt.position.set(Math.sin(t*.5)*3,2,Math.cos(t*.4)*3);
 
   if(brainPlaced){
-    let target;
-    if(hasGyro){
-      // World-locked: inverso de orientación del teléfono + giro manual encima
-      const worldLock=deviceQuat.clone().invert();
-      target=manualQuat.clone().multiply(worldLock);
-    }else{
-      target=manualQuat.clone();
-    }
-    // Suavizado para evitar jitter
-    currentQuat.slerp(target,0.12);
-    brainGroup.quaternion.copy(currentQuat);
+    // Calcula rotación delta del teléfono desde el momento de colocación
+    const deltaQuat = hasGyro
+      ? initialDeviceQuat.clone().invert().multiply(deviceQuat)
+      : new THREE.Quaternion();
+    // Combina órbita manual + delta del giroscopio
+    const combinedQuat = manualQuat.clone().multiply(deltaQuat);
+    // Nuevo offset de cámara orbitando alrededor del cerebro
+    const orbitOffset = orbitV0.clone().applyQuaternion(combinedQuat).multiplyScalar(orbitR);
+    const targetCamPos = brainGroup.position.clone().add(orbitOffset);
+    camera.position.lerp(targetCamPos, 0.15);
+    camera.lookAt(brainGroup.position);
   }
 
   renderer.render(scene,camera);
