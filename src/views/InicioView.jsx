@@ -90,10 +90,10 @@ export default function InicioView({ onNavigate }) {
     setCountdown(10)
   }, [viewedRegions, experience])
 
-  // Countdown tick — each second; at 0 opens modal
+  // Countdown tick — each second; at 0 passes directly to quiz
   useEffect(() => {
     if (countdown === null) return
-    if (countdown === 0) { setCompleteModal(true); setCountdown(null); return }
+    if (countdown === 0) { setCountdown(null); setExperience('3d-quiz'); return }
     const id = setTimeout(() => setCountdown(c => c - 1), 1000)
     return () => clearTimeout(id)
   }, [countdown])
