@@ -13,7 +13,15 @@ const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 
 // experience: null | 'selector' | '3d' | '3d-quiz' | 'ar'
 export default function InicioView({ onNavigate }) {
-  const [experience,     setExperience]     = useState(null)
+  const [experience,     setExperience]     = useState(() => {
+    // Si viene de la pantalla AR con las 6 zonas completas, abrir quiz directo
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('startQuiz') === '1') {
+      window.history.replaceState({}, '', window.location.pathname)
+      return '3d-quiz'
+    }
+    return null
+  })
   const [viewedRegions,  setViewedRegions]  = useState(new Set())
   const [completeModal,  setCompleteModal]  = useState(false)
   const [tutorialModal,  setTutorialModal]  = useState(false)

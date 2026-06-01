@@ -39,6 +39,16 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 #start-overlay p{font-size:9px;color:rgba(255,255,255,.4);line-height:2;text-align:center;max-width:280px}
 #start-btn{padding:14px 32px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:11px;font-family:'Press Start 2P',monospace;letter-spacing:.08em;box-shadow:4px 4px 0 rgba(229,108,120,.3);pointer-events:auto}
 
+/* Modal de completado — igual al de la app */
+#complete-modal{position:fixed;inset:0;z-index:300;background:rgba(5,5,8,.92);display:none;align-items:center;justify-content:center}
+#complete-modal.show{display:flex}
+#complete-inner{width:88%;max-width:340px;background:#0d0d1a;border:1px solid rgba(229,108,120,.35);padding:28px 22px;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center}
+#complete-stars{font-size:2rem;letter-spacing:.2em}
+#complete-tag{font-size:8px;color:#e56c78;letter-spacing:.2em;opacity:.8}
+#complete-title{font-size:14px;color:#fff;letter-spacing:.1em;line-height:1.6;margin-top:4px}
+#complete-desc{font-size:10px;color:rgba(255,255,255,.5);font-family:monospace;line-height:2}
+#quiz-btn{width:100%;padding:16px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:11px;font-family:'Press Start 2P',monospace;letter-spacing:.1em;box-shadow:3px 3px 0 rgba(229,108,120,.3);pointer-events:auto}
+
 #panel{position:fixed;bottom:0;left:0;right:0;z-index:150;background:rgba(5,5,8,.97);border-top:2px solid rgba(229,108,120,.3);padding:20px 18px 36px;transform:translateY(100%);transition:transform .3s ease}
 #panel.open{transform:translateY(0)}
 #p-num{font-size:32px;font-weight:700;opacity:.12;line-height:1;margin-bottom:2px;font-family:monospace;color:#fff}
@@ -74,6 +84,19 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
   <p style="font-size:8px;color:rgba(255,255,255,.2)">Chrome en Android con ARCore para tracking real</p>
 </div>
 
+<!-- Modal de zonas completas -->
+<div id="complete-modal">
+  <div id="complete-inner">
+    <div id="complete-stars">&#9733; &#9733; &#9733;</div>
+    <div>
+      <p id="complete-tag">// ZONAS COMPLETADAS</p>
+      <h2 id="complete-title">&#161;HAS EXPLORADO<br>EL CEREBRO!</h2>
+    </div>
+    <p id="complete-desc">Has visto las <span style="color:#e56c78">6 regiones</span> del cerebro.<br>Ahora pon a prueba lo que aprendiste.</p>
+    <button id="quiz-btn" onclick="goToQuiz()">&gt; IR AL QUIZ</button>
+  </div>
+</div>
+
 <div id="panel">
   <button id="p-close" onclick="deselectAll()">&#xd7;</button>
   <div id="p-num">01</div>
@@ -102,8 +125,6 @@ renderer.xr.enabled = true;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-// IMPORTANTE: en WebXR NO se agrega la camara a la escena
-// Three.js la gestiona internamente via renderer.xr
 const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.01, 100);
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.5));
@@ -151,7 +172,6 @@ wGeo.computeVertexNormals();
 brainGroup.add(new THREE.Mesh(wGeo,new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.08})));
 brainGroup.add(new THREE.Mesh(wGeo.clone(),new THREE.MeshBasicMaterial({color:0x00ffcc,wireframe:true,transparent:true,opacity:0.04})));
 
-// Reticle
 const reticleGeo=new THREE.RingGeometry(0.08,0.11,32).rotateX(-Math.PI/2);
 const reticle=new THREE.Mesh(reticleGeo,new THREE.MeshBasicMaterial({color:0xe56c78,transparent:true,opacity:0.8,side:THREE.DoubleSide}));
 reticle.matrixAutoUpdate=false;
@@ -187,6 +207,8 @@ function selectRegion(i){
   document.getElementById('panel').classList.add('open');
   try{const v=JSON.parse(localStorage.getItem('ne_viewed')||'[]');if(!v.includes(i)){v.push(i);localStorage.setItem('ne_viewed',JSON.stringify(v));};}catch(e){}
   try{new BroadcastChannel('ne_brain').postMessage({type:'regionViewed',index:i,name:r.name});}catch(e){}
+  // Mostrar modal de completado cuando se vean las 6
+  if(seenRegions.size===6) setTimeout(showCompleteModal, 600);
 }
 
 function deselectAll(){activeRegion=-1;updateColors();document.getElementById('panel').classList.remove('open');}
@@ -198,7 +220,18 @@ function updateCounter(){
   el.className=n===6?'complete':'';
 }
 
-// ── Glitch al aparecer ────────────────────────────────
+function showCompleteModal(){
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('complete-modal').classList.add('show');
+}
+
+function goToQuiz(){
+  // Cerrar sesión XR si está activa y navegar al quiz
+  if(xrSession){xrSession.end().catch(()=>{});}
+  window.location.href='/?startQuiz=1';
+}
+
+// ── Glitch ────────────────────────────────────────────
 function glitchReveal(basePos){
   const glitch=document.getElementById('glitch');
   const seq=[[false,60],[true,50],[false,40],[true,80],[false,30],[true,60],[false,40],[true,50],[false,20],[true,70],[false,30],[true,60],[false,20],[true,0]];
@@ -206,9 +239,7 @@ function glitchReveal(basePos){
   glitch.classList.add('on');
   function step(){
     if(idx>=seq.length){
-      glitch.classList.remove('on');
-      brainGroup.visible=true;
-      brainGroup.position.copy(basePos);
+      glitch.classList.remove('on');brainGroup.visible=true;brainGroup.position.copy(basePos);
       regionMeshes.forEach(m=>{m.material.emissive.setHex(0x000000);m.material.emissiveIntensity=0;});
       updateColors();return;
     }
@@ -226,8 +257,7 @@ function glitchReveal(basePos){
 // ── Touch / Mouse ─────────────────────────────────────
 let rotX=0,rotY=0,isDragging=false,dragPx=0,dragPy=0;
 let touchStart={x:0,y:0},isPinching=false,pinchStartDist=0,pinchStartScale=1;
-let lastXrCam=null;
-let fallbackMode=false;
+let lastXrCam=null,fallbackMode=false;
 
 function getTouchDist(t){const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
 
@@ -271,17 +301,17 @@ renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();if(!brainGro
 
 function doRaycast(x,y){
   if(!brainGroup.visible)return;
+  if(document.getElementById('complete-modal').classList.contains('show'))return;
   if(document.getElementById('panel').classList.contains('open')){deselectAll();return;}
   const nx=(x/innerWidth)*2-1,ny=-(y/innerHeight)*2+1;
   const ray=new THREE.Raycaster();
-  // En WebXR usar la ultima camara XR capturada; en fallback usar camara normal
   const cam=lastXrCam||camera;
   ray.setFromCamera(new THREE.Vector2(nx,ny),cam);
   const hits=ray.intersectObjects(regionMeshes,false);
   if(hits.length>0&&hits[0].object.userData.ri!==undefined)selectRegion(hits[0].object.userData.ri);
 }
 
-// ── WebXR con hit-test ────────────────────────────────
+// ── WebXR ─────────────────────────────────────────────
 let hitTestSourceRequested=false,hitTestSource=null,brainPlaced=false,xrSession=null;
 
 async function startAR(){
@@ -296,15 +326,11 @@ async function startAR(){
     });
   }catch(e){return startFallback();}
 
-  // local-floor da mejor tracking de mundo físico; local como fallback
   try{renderer.xr.setReferenceSpaceType('local-floor');}catch(e){renderer.xr.setReferenceSpaceType('local');}
   await renderer.xr.setSession(xrSession);
-
   document.getElementById('mode-tag').textContent='WEBXR · ARCORE';
-
   xrSession.addEventListener('end',()=>{hitTestSource=null;hitTestSourceRequested=false;brainPlaced=false;});
 
-  // Controller → tap para colocar cerebro
   const controller=renderer.xr.getController(0);
   controller.addEventListener('select',onXrTap);
   scene.add(controller);
@@ -315,10 +341,7 @@ async function startAR(){
 
   renderer.setAnimationLoop((time,frame)=>{
     if(frame){
-      // Capturar cámara XR para raycasting
       lastXrCam=renderer.xr.getCamera(camera);
-
-      // Hit-test: solo hasta que se coloque el cerebro
       if(!brainPlaced){
         if(!hitTestSourceRequested){
           const session=renderer.xr.getSession();
@@ -346,29 +369,24 @@ function onXrTap(){
   if(brainPlaced)return;
   const basePos=new THREE.Vector3();
   if(reticle.visible){
-    // Anclar en la superficie física detectada
     basePos.setFromMatrixPosition(reticle.matrix);
   }else{
-    // Sin superficie: 1.5m adelante en el espacio XR
     const xrCam=renderer.xr.getCamera(camera);
     const dir=new THREE.Vector3(0,0,-1).applyQuaternion(xrCam.quaternion);
     xrCam.getWorldPosition(basePos);
     basePos.addScaledVector(dir,1.5);
     basePos.y-=0.3;
   }
-  // Posición fija en el espacio físico — NO se actualiza más
   brainGroup.position.copy(basePos);
   brainGroup.rotation.set(0,0,0);rotX=0;rotY=0;
-  reticle.visible=false;
-  brainPlaced=true;
-  // Detener hit-test para ahorrar recursos
+  reticle.visible=false;brainPlaced=true;
   if(hitTestSource){hitTestSource.cancel&&hitTestSource.cancel();hitTestSource=null;}
   setMsg('ARRASTRA · PELLIZCA PARA ZOOM · TOCA UNA REGION','found');
   updateCounter();
   glitchReveal(basePos);
 }
 
-// ── Fallback: cámara trasera, sin ARCore ─────────────
+// ── Fallback ──────────────────────────────────────────
 async function startFallback(){
   fallbackMode=true;
   document.getElementById('mode-tag').textContent='MODO CAMARA';
@@ -378,7 +396,6 @@ async function startFallback(){
     const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
     vb.srcObject=stream;await vb.play();
   }catch(e){}
-
   camera.position.set(0,0,3);
   brainGroup.position.set(0,0,0);
   brainGroup.scale.setScalar(0.55);
@@ -387,7 +404,6 @@ async function startFallback(){
   setMsg('ARRASTRA · PELLIZCA PARA ZOOM · TOCA UNA REGION','found');
   updateCounter();
   glitchReveal(new THREE.Vector3(0,0,0));
-
   let t=0;
   renderer.setAnimationLoop(()=>{
     t+=0.016;
