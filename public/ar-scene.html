@@ -6,16 +6,16 @@
 <title>NeuroExplora AR</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Press Start 2P',monospace}
-#video-bg{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none}
+#video-bg{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0}
 canvas{position:fixed!important;top:0!important;left:0!important;width:100%!important;height:100%!important;z-index:1;pointer-events:auto}
 #hud{position:fixed;inset:0;z-index:100;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between}
 #top{padding:14px 16px;background:linear-gradient(to bottom,rgba(5,5,8,.88),transparent);display:flex;justify-content:space-between;align-items:flex-start}
 #logo p:first-child{font-size:9px;color:#e56c78;letter-spacing:.2em;opacity:.85}
 #logo p:last-child{font-size:13px;color:#fff;letter-spacing:.1em;margin-top:3px}
-#mode-tag{font-size:7px;color:rgba(80,227,176,.7);letter-spacing:.1em;margin-top:3px}
 #back-btn{pointer-events:auto;padding:9px 14px;background:rgba(5,5,8,.9);border:1px solid rgba(229,108,120,.5);color:#e56c78;font-size:9px;cursor:pointer}
 #bottom{padding:14px 16px 24px;background:linear-gradient(to top,rgba(5,5,8,.78),transparent);text-align:center}
 #msg{font-size:10px;color:rgba(255,255,255,.6);letter-spacing:.08em;line-height:1.8}
@@ -23,24 +23,31 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 #counter{font-size:9px;color:rgba(255,255,255,.45);letter-spacing:.07em;margin-top:6px;transition:color .3s}
 #counter.complete{color:#50e3b0}
 
-/* Banner countdown — idéntico al del explorador 3D */
-#countdown-banner{
-  position:fixed;top:0;left:0;right:0;z-index:110;
-  background:rgba(229,108,120,.18);
-  border-bottom:1px solid rgba(229,108,120,.35);
-  backdrop-filter:blur(4px);
-  padding:10px 16px;
-  display:none;align-items:center;justify-content:center;gap:10px;
-}
+/* Indicador de tracking QR */
+#qr-indicator{position:fixed;top:50%;left:50%;transform:translate(-50%,-58%);z-index:9;pointer-events:none;transition:opacity .4s}
+#qr-indicator .corner{position:absolute;width:24px;height:24px}
+#qr-indicator .tl{top:0;left:0;border-top:2px solid #e56c78;border-left:2px solid #e56c78}
+#qr-indicator .tr{top:0;right:0;border-top:2px solid #e56c78;border-right:2px solid #e56c78}
+#qr-indicator .bl{bottom:0;left:0;border-bottom:2px solid #e56c78;border-left:2px solid #e56c78}
+#qr-indicator .br{bottom:0;right:0;border-bottom:2px solid #e56c78;border-right:2px solid #e56c78}
+#qr-indicator .scan{position:absolute;left:4px;right:4px;height:1px;background:linear-gradient(90deg,transparent,#e56c78,transparent);animation:sy 2s ease-in-out infinite}
+@keyframes sy{0%{top:4px;opacity:.3}50%{top:148px;opacity:1}100%{top:4px;opacity:.3}}
+#qr-indicator.tracking{border-color:#50e3b0}
+#qr-indicator.tracking .corner{border-color:#50e3b0}
+
+/* Countdown banner */
+#countdown-banner{position:fixed;top:0;left:0;right:0;z-index:110;background:rgba(229,108,120,.18);border-bottom:1px solid rgba(229,108,120,.35);backdrop-filter:blur(4px);padding:10px 16px;display:none;align-items:center;justify-content:center;gap:10px}
 #countdown-banner.show{display:flex}
 #cd-label{font-size:9px;color:#e56c78;letter-spacing:.12em;font-family:'Courier New',monospace}
 #cd-num{font-size:18px;color:#fff;font-family:'Press Start 2P',monospace;line-height:1;text-shadow:0 0 10px #e56c78;min-width:22px;text-align:center}
 
-#start-overlay{position:fixed;inset:0;z-index:200;background:rgba(5,5,8,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:28px}
+#start-overlay{position:fixed;inset:0;z-index:200;background:rgba(5,5,8,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:28px}
 #start-overlay.hidden{display:none}
 #start-overlay h2{font-size:11px;color:#e56c78;letter-spacing:.12em;line-height:2;text-align:center}
-#start-overlay p{font-size:9px;color:rgba(255,255,255,.4);line-height:2;text-align:center;max-width:280px}
-#start-btn{padding:14px 32px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:11px;font-family:'Press Start 2P',monospace;letter-spacing:.08em;box-shadow:4px 4px 0 rgba(229,108,120,.3);pointer-events:auto}
+.inst{display:flex;align-items:flex-start;gap:12px;max-width:300px;text-align:left}
+.inst-n{flex-shrink:0;width:20px;height:20px;border:1px solid rgba(229,108,120,.5);display:flex;align-items:center;justify-content:center;font-size:8px;color:#e56c78}
+.inst p{font-size:9px;color:rgba(255,255,255,.45);line-height:1.9}
+#start-btn{padding:14px 32px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:11px;font-family:'Press Start 2P',monospace;letter-spacing:.08em;box-shadow:4px 4px 0 rgba(229,108,120,.3);pointer-events:auto;margin-top:4px}
 
 #complete-modal{position:fixed;inset:0;z-index:300;background:rgba(5,5,8,.92);display:none;align-items:center;justify-content:center}
 #complete-modal.show{display:flex}
@@ -60,7 +67,14 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 </style>
 </head>
 <body>
+
 <video id="video-bg" autoplay playsinline muted></video>
+
+<div id="qr-indicator" style="width:160px;height:160px">
+  <div class="corner tl"></div><div class="corner tr"></div>
+  <div class="corner bl"></div><div class="corner br"></div>
+  <div class="scan"></div>
+</div>
 
 <div id="countdown-banner">
   <span id="cd-label">&#9733; ZONAS COMPLETADAS &mdash; QUIZ EN</span>
@@ -70,17 +84,19 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 
 <div id="hud">
   <div id="top">
-    <div id="logo"><p>// MODO AR</p><p>NEUROEXPLORA</p><p id="mode-tag"></p></div>
+    <div id="logo"><p>// MODO AR</p><p>NEUROEXPLORA</p></div>
     <button id="back-btn" onclick="window.location.href='/'">&#xd7; SALIR</button>
   </div>
-  <div id="bottom"><p id="msg"></p><p id="counter">0 / 6 REGIONES</p></div>
+  <div id="bottom"><p id="msg">BUSCANDO QR...</p><p id="counter">0 / 6 REGIONES</p></div>
 </div>
 
 <div id="start-overlay">
   <h2>MODO AR</h2>
-  <p>Toca ACTIVAR, apunta al suelo y toca la pantalla para anclar el cerebro en ese punto fisico.</p>
+  <div class="inst"><div class="inst-n">1</div><p>Abre cualquier QR en otra pantalla, o imprimelo.</p></div>
+  <div class="inst"><div class="inst-n">2</div><p>Pulsa ACTIVAR y concede permiso de camara.</p></div>
+  <div class="inst"><div class="inst-n">3</div><p>Apunta al QR — el cerebro aparece encima.</p></div>
+  <div class="inst"><div class="inst-n">4</div><p>Arrastra para rotar. Pellizca para cambiar tamano.</p></div>
   <button id="start-btn" onclick="startAR()">&#9658;&nbsp; ACTIVAR AR</button>
-  <p style="font-size:8px;color:rgba(255,255,255,.2)">Chrome en Android con ARCore para tracking real</p>
 </div>
 
 <div id="complete-modal">
@@ -111,14 +127,15 @@ function decodeF32(b64){
 
 // ── Three.js ──────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-renderer.setClearColor(0x000000, 0.40);
+renderer.setClearColor(0x000000, 0.35);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
-renderer.xr.enabled = true;
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.01, 100);
+camera.position.set(0, 0, 3);
+scene.add(camera);
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 const d1=new THREE.DirectionalLight(0xffffff,1.0); d1.position.set(2,3,4); scene.add(d1);
@@ -148,14 +165,9 @@ const wGeo=new THREE.BufferGeometry(); wGeo.setAttribute('position',new THREE.Fl
 brainGroup.add(new THREE.Mesh(wGeo,new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.08})));
 brainGroup.add(new THREE.Mesh(wGeo.clone(),new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.04})));
 
-const reticleGeo=new THREE.RingGeometry(0.08,0.11,32).rotateX(-Math.PI/2);
-const reticle=new THREE.Mesh(reticleGeo,new THREE.MeshBasicMaterial({color:0xe56c78,transparent:true,opacity:0.8,side:THREE.DoubleSide}));
-reticle.matrixAutoUpdate=false; reticle.visible=false; scene.add(reticle);
-
 // ── Regiones ──────────────────────────────────────────
 const seenRegions=new Set();
-let activeRegion=-1;
-let countdownStarted=false;
+let activeRegion=-1, countdownStarted=false;
 
 function updateColors(){
   regionMeshes.forEach((m,j)=>{
@@ -178,17 +190,13 @@ function selectRegion(i){
   document.getElementById('panel').classList.add('open');
   try{const v=JSON.parse(localStorage.getItem('ne_viewed')||'[]');if(!v.includes(i)){v.push(i);localStorage.setItem('ne_viewed',JSON.stringify(v));};}catch(e){}
   try{new BroadcastChannel('ne_brain').postMessage({type:'regionViewed',index:i,name:r.name});}catch(e){}
-  // Igual que el explorador 3D: esperar un momento y arrancar countdown
-  if(seenRegions.size===6&&!countdownStarted){
-    countdownStarted=true;
-    setTimeout(startCountdown, 800);
-  }
+  if(seenRegions.size===6&&!countdownStarted){countdownStarted=true;setTimeout(startCountdown,800);}
 }
 
 function deselectAll(){activeRegion=-1;updateColors();document.getElementById('panel').classList.remove('open');}
 function updateCounter(){const n=seenRegions.size;const el=document.getElementById('counter');el.textContent=n+' / 6 REGIONES';el.className=n===6?'complete':'';}
 
-// ── Countdown (igual que en el explorador 3D) ─────────
+// ── Countdown ─────────────────────────────────────────
 let cdInterval=null;
 function startCountdown(){
   document.getElementById('panel').classList.remove('open');
@@ -198,16 +206,11 @@ function startCountdown(){
   cdInterval=setInterval(()=>{
     secs--;
     document.getElementById('cd-num').textContent=secs;
-    if(secs<=0){
-      clearInterval(cdInterval);
-      document.getElementById('countdown-banner').classList.remove('show');
-      showCompleteModal();
-    }
+    if(secs<=0){clearInterval(cdInterval);document.getElementById('countdown-banner').classList.remove('show');showCompleteModal();}
   },1000);
 }
-
 function showCompleteModal(){document.getElementById('complete-modal').classList.add('show');}
-function goToQuiz(){if(xrSession){xrSession.end().catch(()=>{});}window.location.href='/?startQuiz=1';}
+function goToQuiz(){window.location.href='/?startQuiz=1';}
 
 // ── Animación build-up ────────────────────────────────
 function buildReveal(finalPos){
@@ -231,10 +234,64 @@ function buildReveal(finalPos){
   });
 }
 
+// ── QR tracking con jsQR ──────────────────────────────
+const scanCanvas=document.createElement('canvas');
+const scanCtx=scanCanvas.getContext('2d',{willReadFrequently:true});
+const TRACK_DEPTH=2.8;  // distancia de la cámara al cerebro (scene units)
+let qrDetected=false, qrLostFrames=0;
+let targetPos=new THREE.Vector3();
+
+function qrCenterToWorld(cx, cy, videoW, videoH){
+  // De espacio video → espacio pantalla → NDC → rayo → mundo
+  const sx=(cx/videoW)*innerWidth;
+  const sy=(cy/videoH)*innerHeight;
+  const nx=(sx/innerWidth)*2-1;
+  const ny=-((sy/innerHeight)*2-1);
+  const v=new THREE.Vector3(nx,ny,0.5).unproject(camera);
+  const dir=v.clone().sub(camera.position).normalize();
+  return camera.position.clone().addScaledVector(dir,TRACK_DEPTH);
+}
+
+function scanQR(){
+  const video=document.getElementById('video-bg');
+  if(!video.videoWidth||!video.videoHeight) return;
+  const W=Math.min(video.videoWidth,480);
+  const H=Math.round(W*video.videoHeight/video.videoWidth);
+  scanCanvas.width=W; scanCanvas.height=H;
+  scanCtx.drawImage(video,0,0,W,H);
+  const imageData=scanCtx.getImageData(0,0,W,H);
+  const code=jsQR(imageData.data,W,H,{inversionAttempts:'dontInvert'});
+  if(code){
+    qrLostFrames=0;
+    const loc=code.location;
+    const cx=(loc.topLeftCorner.x+loc.topRightCorner.x+loc.bottomLeftCorner.x+loc.bottomRightCorner.x)/4;
+    const cy=(loc.topLeftCorner.y+loc.topRightCorner.y+loc.bottomLeftCorner.y+loc.bottomRightCorner.y)/4;
+    const worldPos=qrCenterToWorld(cx,cy,W,H);
+    if(!qrDetected){
+      qrDetected=true;
+      targetPos.copy(worldPos);
+      brainGroup.scale.setScalar(0.55);
+      buildReveal(worldPos);
+      setMsg('TOCA UNA REGION PARA EXPLORAR','found');
+      document.getElementById('qr-indicator').style.opacity='0';
+    } else {
+      // Smooth tracking: sigue el QR suavemente
+      targetPos.copy(worldPos);
+    }
+  } else {
+    qrLostFrames++;
+    if(qrLostFrames>15 && qrDetected){
+      setMsg('MANTÉN EL QR VISIBLE','');
+    }
+    if(!qrDetected && qrLostFrames%8===0){
+      setMsg('BUSCANDO QR...','');
+    }
+  }
+}
+
 // ── Touch / Mouse ─────────────────────────────────────
 let rotX=0,rotY=0,isDragging=false,dragPx=0,dragPy=0;
 let touchStart={x:0,y:0},isPinching=false,pinchStartDist=0,pinchStartScale=1;
-let lastXrCam=null,fallbackMode=false;
 
 function getTouchDist(t){const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
 
@@ -248,8 +305,7 @@ renderer.domElement.addEventListener('touchmove',e=>{
   e.preventDefault();
   if(e.touches.length===2&&isPinching){
     const s=pinchStartScale*(getTouchDist(e.touches)/pinchStartDist);
-    const mn=fallbackMode?.15:.04,mx=fallbackMode?2.0:.8;
-    brainGroup.scale.setScalar(Math.max(mn,Math.min(mx,s)));
+    brainGroup.scale.setScalar(Math.max(0.15,Math.min(2.0,s)));
   }else if(e.touches.length===1&&isDragging&&brainGroup.visible){
     const cx=e.touches[0].clientX,cy=e.touches[0].clientY;
     rotY+=(cx-dragPx)*.01;rotX+=(cy-dragPy)*.01;
@@ -274,7 +330,7 @@ renderer.domElement.addEventListener('touchend',e=>{
 renderer.domElement.addEventListener('mousedown',e=>{isDragging=true;dragPx=e.clientX;dragPy=e.clientY;touchStart={x:e.clientX,y:e.clientY};});
 window.addEventListener('mousemove',e=>{if(!isDragging||!brainGroup.visible)return;rotY+=(e.clientX-dragPx)*.01;rotX+=(e.clientY-dragPy)*.01;rotX=Math.max(-1.4,Math.min(1.4,rotX));brainGroup.rotation.set(rotX,rotY,0);dragPx=e.clientX;dragPy=e.clientY;});
 window.addEventListener('mouseup',e=>{if(isDragging){isDragging=false;if(Math.abs(e.clientX-touchStart.x)<5&&Math.abs(e.clientY-touchStart.y)<5)doRaycast(e.clientX,e.clientY);}});
-renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();if(!brainGroup.visible)return;const s=brainGroup.scale.x*(1-e.deltaY*.001);const mn=fallbackMode?.15:.04,mx=fallbackMode?2.0:.8;brainGroup.scale.setScalar(Math.max(mn,Math.min(mx,s)));},{passive:false});
+renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();if(!brainGroup.visible)return;const s=brainGroup.scale.x*(1-e.deltaY*.001);brainGroup.scale.setScalar(Math.max(0.15,Math.min(2.0,s)));},{passive:false});
 
 function doRaycast(x,y){
   if(!brainGroup.visible)return;
@@ -282,103 +338,39 @@ function doRaycast(x,y){
   if(document.getElementById('panel').classList.contains('open')){deselectAll();return;}
   const nx=(x/innerWidth)*2-1,ny=-(y/innerHeight)*2+1;
   const ray=new THREE.Raycaster();
-  const cam=lastXrCam||camera;
-  ray.setFromCamera(new THREE.Vector2(nx,ny),cam);
+  ray.setFromCamera(new THREE.Vector2(nx,ny),camera);
   const hits=ray.intersectObjects(regionMeshes.filter(m=>m.visible),false);
   if(hits.length>0&&hits[0].object.userData.ri!==undefined) selectRegion(hits[0].object.userData.ri);
 }
 
-// ── WebXR ─────────────────────────────────────────────
-let hitTestSourceRequested=false,hitTestSource=null,brainPlaced=false,xrSession=null;
-let brainAnchor=null,lastHitResult=null;
-const _camPos=new THREE.Vector3(),_camDir=new THREE.Vector3();
+// ── Render loop ───────────────────────────────────────
+let t=0;
+renderer.setAnimationLoop(()=>{
+  t+=0.016;
+  pt.position.set(Math.sin(t*.5)*3,2,Math.cos(t*.4)*3);
+  // Smooth tracking: brain sigue la posición del QR
+  if(qrDetected && !isDragging){
+    brainGroup.position.lerp(targetPos, 0.15);
+  }
+  renderer.render(scene,camera);
+});
 
+// ── Inicio: solicitar cámara ──────────────────────────
 async function startAR(){
   document.getElementById('start-overlay').classList.add('hidden');
-  const ok=navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false);
-  if(!ok) return startFallback();
+  const video=document.getElementById('video-bg');
   try{
-    xrSession=await navigator.xr.requestSession('immersive-ar',{
-      requiredFeatures:['hit-test'],
-      optionalFeatures:['dom-overlay','local-floor','anchors'],
-      domOverlay:{root:document.body}
+    const stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}
     });
-  }catch(e){return startFallback();}
-
-  try{renderer.xr.setReferenceSpaceType('local-floor');}catch(e){renderer.xr.setReferenceSpaceType('local');}
-  await renderer.xr.setSession(xrSession);
-  document.getElementById('mode-tag').textContent='WEBXR · ARCORE';
-  xrSession.addEventListener('end',()=>{hitTestSource=null;hitTestSourceRequested=false;brainPlaced=false;brainAnchor=null;});
-
-  const controller=renderer.xr.getController(0);
-  controller.addEventListener('select',onXrTap);
-  scene.add(controller);
-  brainGroup.scale.setScalar(0.15);
-  setMsg('APUNTA AL SUELO Y TOCA PARA COLOCAR');
-  updateCounter();
-
-  renderer.setAnimationLoop((time,frame)=>{
-    if(frame){
-      lastXrCam=renderer.xr.getCamera(camera);
-      lastXrCam.getWorldPosition(_camPos);
-      lastXrCam.getWorldDirection(_camDir);
-      if(!brainPlaced){
-        if(!hitTestSourceRequested){
-          const session=renderer.xr.getSession();
-          session.requestReferenceSpace('viewer').then(vs=>{session.requestHitTestSource({space:vs}).then(src=>{hitTestSource=src;});});
-          hitTestSourceRequested=true;
-        }
-        if(hitTestSource){
-          const refSpace=renderer.xr.getReferenceSpace();
-          const hits=frame.getHitTestResults(hitTestSource);
-          if(hits.length>0){lastHitResult=hits[0];const pose=hits[0].getPose(refSpace);if(pose){reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);}}
-          else{lastHitResult=null;reticle.visible=false;}
-        }
-      }
-      if(brainPlaced&&brainAnchor){
-        const refSpace=renderer.xr.getReferenceSpace();
-        try{const ap=frame.getPose(brainAnchor.anchorSpace,refSpace);if(ap){const m=new THREE.Matrix4().fromArray(ap.transform.matrix);brainGroup.position.setFromMatrixPosition(m);}}catch(e){}
-      }
-    }
-    pt.position.set(Math.sin(Date.now()*.0005)*2,1.5,Math.cos(Date.now()*.0004)*2);
-    renderer.render(scene,camera);
-  });
-}
-
-async function onXrTap(){
-  if(brainPlaced) return;
-  const finalPos=new THREE.Vector3();
-  if(reticle.visible){
-    finalPos.setFromMatrixPosition(reticle.matrix);
-    if(lastHitResult&&lastHitResult.createAnchor){try{brainAnchor=await lastHitResult.createAnchor();}catch(e){brainAnchor=null;}}
-  }else{
-    finalPos.copy(_camPos).addScaledVector(_camDir,1.5);
-    finalPos.y=_camPos.y-0.3;
+    video.srcObject=stream; await video.play();
+  }catch(e){
+    setMsg('SIN ACCESO A CAMARA','');
+    return;
   }
-  brainGroup.rotation.set(0,0,0);rotX=0;rotY=0;
-  reticle.visible=false;brainPlaced=true;
-  if(hitTestSource){hitTestSource.cancel&&hitTestSource.cancel();hitTestSource=null;}
-  setMsg('ARRASTRA · PELLIZCA PARA ZOOM · TOCA UNA REGION','found');
+  // Arrancar escaneo de QR cada 80ms (~12fps)
+  setInterval(scanQR, 80);
   updateCounter();
-  buildReveal(finalPos);
-}
-
-// ── Fallback ──────────────────────────────────────────
-async function startFallback(){
-  fallbackMode=true;
-  document.getElementById('mode-tag').textContent='MODO CAMARA';
-  const vb=document.getElementById('video-bg');
-  vb.style.display='block';
-  try{const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});vb.srcObject=stream;await vb.play();}catch(e){}
-  camera.position.set(0,0,3);
-  brainGroup.position.set(0,0,0);
-  brainGroup.scale.setScalar(0.55);
-  brainGroup.rotation.set(0,0,0);rotX=0;rotY=0;brainPlaced=true;
-  setMsg('ARRASTRA · PELLIZCA PARA ZOOM · TOCA UNA REGION','found');
-  updateCounter();
-  buildReveal(new THREE.Vector3(0,0,0));
-  let t=0;
-  renderer.setAnimationLoop(()=>{t+=0.016;pt.position.set(Math.sin(t*.5)*3,2,Math.cos(t*.4)*3);renderer.render(scene,camera);});
 }
 
 function setMsg(t,c=''){const e=document.getElementById('msg');e.textContent=t;e.className=c;}
