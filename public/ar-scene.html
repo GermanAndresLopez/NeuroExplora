@@ -39,7 +39,6 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 #start-overlay p{font-size:9px;color:rgba(255,255,255,.4);line-height:2;text-align:center;max-width:280px}
 #start-btn{padding:14px 32px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:11px;font-family:'Press Start 2P',monospace;letter-spacing:.08em;box-shadow:4px 4px 0 rgba(229,108,120,.3);pointer-events:auto}
 
-/* Modal de completado — igual al de la app */
 #complete-modal{position:fixed;inset:0;z-index:300;background:rgba(5,5,8,.92);display:none;align-items:center;justify-content:center}
 #complete-modal.show{display:flex}
 #complete-inner{width:88%;max-width:340px;background:#0d0d1a;border:1px solid rgba(229,108,120,.35);padding:28px 22px;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center}
@@ -65,8 +64,7 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 <div id="hud">
   <div id="top">
     <div id="logo">
-      <p>// MODO AR</p>
-      <p>NEUROEXPLORA</p>
+      <p>// MODO AR</p><p>NEUROEXPLORA</p>
       <p id="mode-tag"></p>
     </div>
     <button id="back-btn" onclick="window.location.href='/'">&#xd7; SALIR</button>
@@ -84,7 +82,6 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
   <p style="font-size:8px;color:rgba(255,255,255,.2)">Chrome en Android con ARCore para tracking real</p>
 </div>
 
-<!-- Modal de zonas completas -->
 <div id="complete-modal">
   <div id="complete-inner">
     <div id="complete-stars">&#9733; &#9733; &#9733;</div>
@@ -207,7 +204,6 @@ function selectRegion(i){
   document.getElementById('panel').classList.add('open');
   try{const v=JSON.parse(localStorage.getItem('ne_viewed')||'[]');if(!v.includes(i)){v.push(i);localStorage.setItem('ne_viewed',JSON.stringify(v));};}catch(e){}
   try{new BroadcastChannel('ne_brain').postMessage({type:'regionViewed',index:i,name:r.name});}catch(e){}
-  // Mostrar modal de completado cuando se vean las 6
   if(seenRegions.size===6) setTimeout(showCompleteModal, 600);
 }
 
@@ -226,32 +222,42 @@ function showCompleteModal(){
 }
 
 function goToQuiz(){
-  // Cerrar sesión XR si está activa y navegar al quiz
   if(xrSession){xrSession.end().catch(()=>{});}
   window.location.href='/?startQuiz=1';
 }
 
-// ── Glitch ────────────────────────────────────────────
-function glitchReveal(basePos){
+// ── Glitch: solo colores/opacidad, NUNCA posición ─────
+function glitchReveal(finalPos){
   const glitch=document.getElementById('glitch');
-  const seq=[[false,60],[true,50],[false,40],[true,80],[false,30],[true,60],[false,40],[true,50],[false,20],[true,70],[false,30],[true,60],[false,20],[true,0]];
+  // El cerebro aparece en su posición FINAL desde el primer frame
+  brainGroup.position.copy(finalPos);
+  brainGroup.visible=true;
+
+  const seq=[[true,55],[false,45],[true,80],[false,35],[true,60],[false,40],[true,50],[false,25],[true,70],[false,30],[true,0]];
   let idx=0;
   glitch.classList.add('on');
+
   function step(){
     if(idx>=seq.length){
-      glitch.classList.remove('on');brainGroup.visible=true;brainGroup.position.copy(basePos);
+      glitch.classList.remove('on');
       regionMeshes.forEach(m=>{m.material.emissive.setHex(0x000000);m.material.emissiveIntensity=0;});
-      updateColors();return;
+      updateColors();
+      return;
     }
     const [vis,dur]=seq[idx++];
     brainGroup.visible=vis;
     if(vis){
-      brainGroup.position.set(basePos.x+(Math.random()-.5)*.08,basePos.y+(Math.random()-.5)*.05,basePos.z+(Math.random()-.5)*.04);
-      regionMeshes.forEach(m=>{m.material.color.setHex(0xffffff);m.material.emissive.setHex(0xffffff);m.material.emissiveIntensity=0.8+Math.random()*.5;m.material.opacity=0.7+Math.random()*.3;});
+      // Solo color y opacidad — posición nunca cambia
+      regionMeshes.forEach(m=>{
+        m.material.color.setHex(Math.random()>.4?0xffffff:ACTIVE_HEX[m.userData.ri]);
+        m.material.emissive.setHex(0xffffff);
+        m.material.emissiveIntensity=0.7+Math.random()*.6;
+        m.material.opacity=0.5+Math.random()*.5;
+      });
     }
-    if(idx<seq.length)setTimeout(step,dur);else step();
+    if(idx<seq.length) setTimeout(step,dur); else step();
   }
-  setTimeout(step,80);
+  setTimeout(step,50);
 }
 
 // ── Touch / Mouse ─────────────────────────────────────
@@ -289,7 +295,7 @@ renderer.domElement.addEventListener('touchend',e=>{
     if(isDragging){
       isDragging=false;
       const cx=e.changedTouches[0].clientX,cy=e.changedTouches[0].clientY;
-      if(Math.abs(cx-touchStart.x)<10&&Math.abs(cy-touchStart.y)<10)doRaycast(touchStart.x,touchStart.y);
+      if(Math.abs(cx-touchStart.x)<10&&Math.abs(cy-touchStart.y)<10) doRaycast(touchStart.x,touchStart.y);
     }
   }
 },{passive:false});
@@ -308,16 +314,18 @@ function doRaycast(x,y){
   const cam=lastXrCam||camera;
   ray.setFromCamera(new THREE.Vector2(nx,ny),cam);
   const hits=ray.intersectObjects(regionMeshes,false);
-  if(hits.length>0&&hits[0].object.userData.ri!==undefined)selectRegion(hits[0].object.userData.ri);
+  if(hits.length>0&&hits[0].object.userData.ri!==undefined) selectRegion(hits[0].object.userData.ri);
 }
 
 // ── WebXR ─────────────────────────────────────────────
 let hitTestSourceRequested=false,hitTestSource=null,brainPlaced=false,xrSession=null;
+// Captura de posición/dirección de cámara dentro del loop (más preciso)
+const _camPos=new THREE.Vector3(), _camDir=new THREE.Vector3();
 
 async function startAR(){
   document.getElementById('start-overlay').classList.add('hidden');
   const ok=navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false);
-  if(!ok)return startFallback();
+  if(!ok) return startFallback();
   try{
     xrSession=await navigator.xr.requestSession('immersive-ar',{
       requiredFeatures:['hit-test'],
@@ -341,7 +349,11 @@ async function startAR(){
 
   renderer.setAnimationLoop((time,frame)=>{
     if(frame){
+      // Capturar pose de cámara cada frame para uso en onXrTap
       lastXrCam=renderer.xr.getCamera(camera);
+      lastXrCam.getWorldPosition(_camPos);
+      lastXrCam.getWorldDirection(_camDir);
+
       if(!brainPlaced){
         if(!hitTestSourceRequested){
           const session=renderer.xr.getSession();
@@ -366,24 +378,23 @@ async function startAR(){
 }
 
 function onXrTap(){
-  if(brainPlaced)return;
-  const basePos=new THREE.Vector3();
+  if(brainPlaced) return;
+  const finalPos=new THREE.Vector3();
   if(reticle.visible){
-    basePos.setFromMatrixPosition(reticle.matrix);
+    // Posición exacta de la superficie física detectada
+    finalPos.setFromMatrixPosition(reticle.matrix);
   }else{
-    const xrCam=renderer.xr.getCamera(camera);
-    const dir=new THREE.Vector3(0,0,-1).applyQuaternion(xrCam.quaternion);
-    xrCam.getWorldPosition(basePos);
-    basePos.addScaledVector(dir,1.5);
-    basePos.y-=0.3;
+    // Sin superficie: usar última posición capturada de cámara
+    finalPos.copy(_camPos).addScaledVector(_camDir,1.5);
+    finalPos.y=_camPos.y-0.3;
   }
-  brainGroup.position.copy(basePos);
-  brainGroup.rotation.set(0,0,0);rotX=0;rotY=0;
-  reticle.visible=false;brainPlaced=true;
+  brainGroup.rotation.set(0,0,0); rotX=0; rotY=0;
+  reticle.visible=false;
+  brainPlaced=true;
   if(hitTestSource){hitTestSource.cancel&&hitTestSource.cancel();hitTestSource=null;}
   setMsg('ARRASTRA · PELLIZCA PARA ZOOM · TOCA UNA REGION','found');
   updateCounter();
-  glitchReveal(basePos);
+  glitchReveal(finalPos);
 }
 
 // ── Fallback ──────────────────────────────────────────
@@ -394,13 +405,13 @@ async function startFallback(){
   vb.style.display='block';
   try{
     const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    vb.srcObject=stream;await vb.play();
+    vb.srcObject=stream; await vb.play();
   }catch(e){}
   camera.position.set(0,0,3);
   brainGroup.position.set(0,0,0);
   brainGroup.scale.setScalar(0.55);
-  brainGroup.rotation.set(0,0,0);
-  rotX=0;rotY=0;brainPlaced=true;
+  brainGroup.rotation.set(0,0,0); rotX=0; rotY=0;
+  brainPlaced=true;
   setMsg('ARRASTRA · PELLIZCA PARA ZOOM · TOCA UNA REGION','found');
   updateCounter();
   glitchReveal(new THREE.Vector3(0,0,0));
