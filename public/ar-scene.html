@@ -6,7 +6,6 @@
 <title>NeuroExplora AR</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Press Start 2P',monospace}
@@ -22,25 +21,17 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 #msg.found{color:#50e3b0}
 #counter{font-size:9px;color:rgba(255,255,255,.45);letter-spacing:.07em;margin-top:6px}
 #counter.complete{color:#50e3b0}
-#qr-frame{position:fixed;top:50%;left:50%;transform:translate(-50%,-58%);width:160px;height:160px;z-index:9;pointer-events:none;transition:opacity .4s}
-.co{position:absolute;width:24px;height:24px}
-.tl{top:0;left:0;border-top:2px solid #e56c78;border-left:2px solid #e56c78}
-.tr{top:0;right:0;border-top:2px solid #e56c78;border-right:2px solid #e56c78}
-.bl{bottom:0;left:0;border-bottom:2px solid #e56c78;border-left:2px solid #e56c78}
-.br{bottom:0;right:0;border-bottom:2px solid #e56c78;border-right:2px solid #e56c78}
-.sl{position:absolute;left:4px;right:4px;height:1px;background:linear-gradient(90deg,transparent,#e56c78,transparent);animation:sy 2s ease-in-out infinite}
-@keyframes sy{0%{top:4px;opacity:.3}50%{top:148px;opacity:1}100%{top:4px;opacity:.3}}
 #countdown-banner{position:fixed;top:0;left:0;right:0;z-index:110;background:rgba(229,108,120,.18);border-bottom:1px solid rgba(229,108,120,.35);backdrop-filter:blur(4px);padding:10px 16px;display:none;align-items:center;justify-content:center;gap:10px}
 #countdown-banner.show{display:flex}
 .cd-lbl{font-size:9px;color:#e56c78;letter-spacing:.12em;font-family:'Courier New',monospace}
 #cd-num{font-size:18px;color:#fff;font-family:'Press Start 2P',monospace;line-height:1;text-shadow:0 0 10px #e56c78;min-width:22px;text-align:center}
-#start-overlay{position:fixed;inset:0;z-index:200;background:rgba(5,5,8,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:28px}
+#start-overlay{position:fixed;inset:0;z-index:200;background:rgba(5,5,8,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:28px}
 #start-overlay.hidden{display:none}
 #start-overlay h2{font-size:11px;color:#e56c78;letter-spacing:.12em;line-height:2;text-align:center}
 .inst{display:flex;align-items:flex-start;gap:12px;max-width:300px}
 .inst-n{flex-shrink:0;width:20px;height:20px;border:1px solid rgba(229,108,120,.5);display:flex;align-items:center;justify-content:center;font-size:8px;color:#e56c78}
 .inst p{font-size:9px;color:rgba(255,255,255,.45);line-height:1.9}
-#start-btn{padding:14px 32px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:11px;font-family:'Press Start 2P',monospace;letter-spacing:.08em;box-shadow:4px 4px 0 rgba(229,108,120,.3);pointer-events:auto;margin-top:4px}
+#start-btn{padding:14px 32px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:11px;font-family:'Press Start 2P',monospace;letter-spacing:.08em;box-shadow:4px 4px 0 rgba(229,108,120,.3);pointer-events:auto;margin-top:6px}
 #complete-modal{position:fixed;inset:0;z-index:300;background:rgba(5,5,8,.92);display:none;align-items:center;justify-content:center}
 #complete-modal.show{display:flex}
 #complete-inner{width:88%;max-width:340px;background:#0d0d1a;border:1px solid rgba(229,108,120,.35);padding:28px 22px;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center}
@@ -59,21 +50,19 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 </head>
 <body>
 <video id="video-bg" autoplay playsinline muted></video>
-<div id="qr-frame"><div class="co tl"></div><div class="co tr"></div><div class="co bl"></div><div class="co br"></div><div class="sl"></div></div>
 <div id="countdown-banner"><span class="cd-lbl">&#9733; ZONAS COMPLETADAS &mdash; QUIZ EN</span><span id="cd-num">10</span><span class="cd-lbl">SEG...</span></div>
 <div id="hud">
   <div id="top">
     <div id="logo"><p>// MODO AR</p><p>NEUROEXPLORA</p></div>
     <button id="back-btn" onclick="window.location.href='/'">&#xd7; SALIR</button>
   </div>
-  <div id="bottom"><p id="msg">BUSCANDO QR...</p><p id="counter">0 / 6 REGIONES</p></div>
+  <div id="bottom"><p id="msg"></p><p id="counter">0 / 6 REGIONES</p></div>
 </div>
 <div id="start-overlay">
   <h2>MODO AR</h2>
-  <div class="inst"><div class="inst-n">1</div><p>Abre cualquier codigo QR en otra pantalla o imprimelo.</p></div>
-  <div class="inst"><div class="inst-n">2</div><p>Pulsa ACTIVAR y concede permiso de camara.</p></div>
-  <div class="inst"><div class="inst-n">3</div><p>Apunta al QR — el cerebro aparece encima.</p></div>
-  <div class="inst"><div class="inst-n">4</div><p>Arrastra para rotar. Pellizca para el tamano.</p></div>
+  <div class="inst"><div class="inst-n">1</div><p>Pulsa ACTIVAR y concede el permiso de camara.</p></div>
+  <div class="inst"><div class="inst-n">2</div><p>Toca cualquier punto de la pantalla para colocar el cerebro ahi.</p></div>
+  <div class="inst"><div class="inst-n">3</div><p>Inclina el celular para rotarlo. Arrastra con el dedo para girarlo. Pellizca para el tamano.</p></div>
   <button id="start-btn" onclick="startAR()">&#9658;&nbsp; ACTIVAR AR</button>
 </div>
 <div id="complete-modal">
@@ -168,7 +157,7 @@ function selectRegion(i){
 function deselectAll(){activeRegion=-1;updateColors();document.getElementById('panel').classList.remove('open');}
 function updateCounter(){const n=seenRegions.size;const el=document.getElementById('counter');el.textContent=n+' / 6 REGIONES';el.className=n===6?'complete':'';}
 
-// ── Countdown / modales ───────────────────────────────
+// ── Countdown / quiz ──────────────────────────────────
 let cdInterval=null;
 function startCountdown(){
   document.getElementById('panel').classList.remove('open');
@@ -192,133 +181,124 @@ function buildReveal(pos){
   });
 }
 
-// ── QR → posición 3D exacta ────────────────────────────
-// Convierte píxel de pantalla → rayo → intersección con plano z=0.
-// Este es el método más preciso: usa la matriz de proyección real de Three.js.
-const _ray = new THREE.Raycaster();
-const _plane = new THREE.Plane(new THREE.Vector3(0,0,1), 0); // plano z=0
-const _hit = new THREE.Vector3();
+// ── Tap para colocar cerebro ──────────────────────────
+let brainPlaced=false;
+// Plano z=0 para intersección de rayo
+const _raycaster=new THREE.Raycaster();
+const _plane=new THREE.Plane(new THREE.Vector3(0,0,1),0);
+const _hitPoint=new THREE.Vector3();
 
-function screenPixelTo3D(screenX, screenY){
-  const ndc = new THREE.Vector2(
-    (screenX / innerWidth)  *  2 - 1,
-    (screenY / innerHeight) * -2 + 1
-  );
-  _ray.setFromCamera(ndc, camera);
-  if(_ray.ray.intersectPlane(_plane, _hit)){
-    return _hit.clone();
+function placeBrain(screenX, screenY){
+  const ndc=new THREE.Vector2((screenX/innerWidth)*2-1,-((screenY/innerHeight)*2-1));
+  _raycaster.setFromCamera(ndc,camera);
+  if(_raycaster.ray.intersectPlane(_plane,_hitPoint)){
+    buildReveal(_hitPoint.clone());
+  } else {
+    buildReveal(new THREE.Vector3(0,0,0));
   }
-  // Fallback: posición directa a 2.5 unidades
-  return camera.position.clone().addScaledVector(_ray.ray.direction, 2.5);
+  brainPlaced=true;
+  setMsg('INCLINA O ARRASTRA PARA ROTAR · TOCA UNA REGION','found');
+  updateCounter();
 }
 
-// Convierte coordenadas de vídeo → píxel de pantalla
-// replicando object-fit:cover exactamente.
-function videoPixelToScreen(vx, vy, vw, vh){
-  const sw=innerWidth, sh=innerHeight;
-  const vr=vw/vh, sr=sw/sh;
-  let x0=0, y0=0, visW=vw, visH=vh;
-  if(vr>sr){ visW=vh*sr; x0=(vw-visW)/2; }
-  else      { visH=vw/sr; y0=(vh-visH)/2; }
-  // Factor de escala: píxeles de pantalla por píxel de vídeo
-  const scale = sw/visW;
-  return {
-    sx: ((vx-x0)/visW)*sw,
-    sy: ((vy-y0)/visH)*sh,
-    scale
-  };
+// ── Rotación: giroscopio + arrastre ──────────────────
+// Las dos rotaciones se suman: manualRot (arrastre) + gyroRot (giroscopio)
+let manualRotX=0, manualRotY=0;
+let gyroRotX=0, gyroRotY=0;
+let lastBeta=null, lastGamma=null;
+let hasGyro=false;
+
+function onOrientation(e){
+  if(e.beta==null||e.gamma==null) return;
+  if(lastBeta!==null){
+    const dBeta=e.beta-lastBeta;
+    let dGamma=e.gamma-lastGamma;
+    // Evitar saltos de wraparound (360°→0°)
+    if(dGamma>180) dGamma-=360;
+    if(dGamma<-180) dGamma+=360;
+    // Solo aplicar si es un movimiento pequeño (evitar sacudidas)
+    if(Math.abs(dBeta)<25)  gyroRotX+=dBeta*0.016;
+    if(Math.abs(dGamma)<25) gyroRotY+=dGamma*0.016;
+  }
+  lastBeta=e.beta; lastGamma=e.gamma;
+  hasGyro=true;
 }
 
-// ── QR scanning (dentro del render loop para no bloquear) ──
-const scanCanvas = document.createElement('canvas');
-const scanCtx    = scanCanvas.getContext('2d', {willReadFrequently:true});
-let qrVisible=false, qrLostFrames=0, frameCount=0;
-const targetPos=new THREE.Vector3();
-let targetScale=0.55;
-
-function tryQRScan(){
-  const video=document.getElementById('video-bg');
-  const vw=video.videoWidth, vh=video.videoHeight;
-  if(!vw||!vh) return;
-
-  // Resolución reducida (max 320px) para rapidez
-  const SW=Math.min(vw,320), SH=Math.round(SW*vh/vw);
-  if(scanCanvas.width!==SW||scanCanvas.height!==SH){scanCanvas.width=SW;scanCanvas.height=SH;}
-  scanCtx.drawImage(video,0,0,SW,SH);
-
-  const img=scanCtx.getImageData(0,0,SW,SH);
-  // Una sola pasada, intenta ambas polaridades
-  const code=jsQR(img.data,SW,SH,{inversionAttempts:'attemptBoth'});
-  if(!code){
-    qrLostFrames++;
-    if(qrLostFrames===20&&qrVisible) setMsg('APUNTA AL QR PARA SEGUIR','');
-    if(qrLostFrames===90&&!qrVisible) setMsg('BUSCANDO QR...','');
-    return;
-  }
-  qrLostFrames=0;
-
-  // Esquinas en espacio de escaneo → espacio de vídeo nativo
-  const loc=code.location;
-  const toVid=p=>({x:p.x/SW*vw, y:p.y/SH*vh});
-  const c=[loc.topLeftCorner,loc.topRightCorner,loc.bottomRightCorner,loc.bottomLeftCorner].map(toVid);
-
-  // Centro del QR en espacio de vídeo
-  const vCx=c.reduce((s,p)=>s+p.x,0)/4;
-  const vCy=c.reduce((s,p)=>s+p.y,0)/4;
-
-  // Convertir a píxeles de pantalla
-  const sp=videoPixelToScreen(vCx,vCy,vw,vh);
-
-  // Tamaño medio de aristas en píxeles de pantalla (para escala del cerebro)
-  const avgEdgeVid=(
-    Math.hypot(c[1].x-c[0].x,c[1].y-c[0].y)+
-    Math.hypot(c[2].x-c[1].x,c[2].y-c[1].y)+
-    Math.hypot(c[3].x-c[2].x,c[3].y-c[2].y)+
-    Math.hypot(c[0].x-c[3].x,c[0].y-c[3].y)
-  )/4;
-  const avgEdgeScreen=avgEdgeVid*sp.scale;
-
-  // 3D: intersección del rayo de pantalla con el plano z=0
-  const pos3D=screenPixelTo3D(sp.sx, sp.sy);
-  targetPos.copy(pos3D);
-
-  // Escala del cerebro proporcional al tamaño del QR en pantalla
-  // 200px QR → escala 0.55 (tamaño base)
-  targetScale=Math.max(0.2, Math.min(1.8, (avgEdgeScreen/200)*0.55));
-
-  if(!qrVisible){
-    qrVisible=true;
-    brainGroup.scale.setScalar(targetScale);
-    buildReveal(pos3D);
-    document.getElementById('qr-frame').style.opacity='0';
-    setMsg('TOCA UNA REGION PARA EXPLORAR','found');
-    updateCounter();
+function requestGyro(){
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+    DeviceOrientationEvent.requestPermission()
+      .then(r=>{if(r==='granted')window.addEventListener('deviceorientation',onOrientation,true);})
+      .catch(()=>window.addEventListener('deviceorientation',onOrientation,true));
+  }else{
+    window.addEventListener('deviceorientation',onOrientation,true);
   }
 }
 
 // ── Touch / Mouse ─────────────────────────────────────
-let rotX=0,rotY=0,isDragging=false,dragPx=0,dragPy=0;
+let isDragging=false,dragPx=0,dragPy=0;
 let touchStart={x:0,y:0},isPinching=false,pinchStartDist=0,pinchStartScale=1;
 
 function getTouchDist(t){const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
+
 renderer.domElement.addEventListener('touchstart',e=>{
   e.preventDefault();
   if(e.touches.length===2){isDragging=false;isPinching=true;pinchStartDist=getTouchDist(e.touches);pinchStartScale=brainGroup.scale.x;}
   else if(e.touches.length===1){isPinching=false;isDragging=true;dragPx=e.touches[0].clientX;dragPy=e.touches[0].clientY;touchStart={x:dragPx,y:dragPy};}
 },{passive:false});
+
 renderer.domElement.addEventListener('touchmove',e=>{
   e.preventDefault();
-  if(e.touches.length===2&&isPinching){const s=pinchStartScale*(getTouchDist(e.touches)/pinchStartDist);brainGroup.scale.setScalar(Math.max(0.15,Math.min(2.0,s)));}
-  else if(e.touches.length===1&&isDragging&&brainGroup.visible){const cx=e.touches[0].clientX,cy=e.touches[0].clientY;rotY+=(cx-dragPx)*.01;rotX+=(cy-dragPy)*.01;rotX=Math.max(-1.4,Math.min(1.4,rotX));brainGroup.rotation.set(rotX,rotY,0);dragPx=cx;dragPy=cy;}
+  if(e.touches.length===2&&isPinching){
+    const s=pinchStartScale*(getTouchDist(e.touches)/pinchStartDist);
+    brainGroup.scale.setScalar(Math.max(0.15,Math.min(2.0,s)));
+  }else if(e.touches.length===1&&isDragging){
+    const cx=e.touches[0].clientX,cy=e.touches[0].clientY;
+    manualRotY+=(cx-dragPx)*.012;
+    manualRotX+=(cy-dragPy)*.012;
+    manualRotX=Math.max(-Math.PI,Math.min(Math.PI,manualRotX));
+    dragPx=cx;dragPy=cy;
+  }
 },{passive:false});
+
 renderer.domElement.addEventListener('touchend',e=>{
   e.preventDefault();
-  if(e.touches.length===0){isPinching=false;if(isDragging){isDragging=false;const cx=e.changedTouches[0].clientX,cy=e.changedTouches[0].clientY;if(Math.abs(cx-touchStart.x)<10&&Math.abs(cy-touchStart.y)<10)doRaycast(touchStart.x,touchStart.y);}}
+  if(e.touches.length===0){
+    isPinching=false;
+    if(isDragging){
+      isDragging=false;
+      const cx=e.changedTouches[0].clientX,cy=e.changedTouches[0].clientY;
+      const moved=Math.abs(cx-touchStart.x)<10&&Math.abs(cy-touchStart.y)<10;
+      if(moved){
+        if(!brainPlaced) placeBrain(touchStart.x,touchStart.y);
+        else doRaycast(touchStart.x,touchStart.y);
+      }
+    }
+  }
 },{passive:false});
+
+// Mouse (desktop)
 renderer.domElement.addEventListener('mousedown',e=>{isDragging=true;dragPx=e.clientX;dragPy=e.clientY;touchStart={x:e.clientX,y:e.clientY};});
-window.addEventListener('mousemove',e=>{if(!isDragging||!brainGroup.visible)return;rotY+=(e.clientX-dragPx)*.01;rotX+=(e.clientY-dragPy)*.01;rotX=Math.max(-1.4,Math.min(1.4,rotX));brainGroup.rotation.set(rotX,rotY,0);dragPx=e.clientX;dragPy=e.clientY;});
-window.addEventListener('mouseup',e=>{if(isDragging){isDragging=false;if(Math.abs(e.clientX-touchStart.x)<5&&Math.abs(e.clientY-touchStart.y)<5)doRaycast(e.clientX,e.clientY);}});
-renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();if(!brainGroup.visible)return;const s=brainGroup.scale.x*(1-e.deltaY*.001);brainGroup.scale.setScalar(Math.max(0.15,Math.min(2.0,s)));},{passive:false});
+window.addEventListener('mousemove',e=>{
+  if(!isDragging)return;
+  manualRotY+=(e.clientX-dragPx)*.012;
+  manualRotX+=(e.clientY-dragPy)*.012;
+  manualRotX=Math.max(-Math.PI,Math.min(Math.PI,manualRotX));
+  dragPx=e.clientX;dragPy=e.clientY;
+});
+window.addEventListener('mouseup',e=>{
+  if(isDragging){isDragging=false;
+    if(Math.abs(e.clientX-touchStart.x)<5&&Math.abs(e.clientY-touchStart.y)<5){
+      if(!brainPlaced) placeBrain(e.clientX,e.clientY);
+      else doRaycast(e.clientX,e.clientY);
+    }
+  }
+});
+renderer.domElement.addEventListener('wheel',e=>{
+  e.preventDefault();
+  if(!brainGroup.visible)return;
+  const s=brainGroup.scale.x*(1-e.deltaY*.001);
+  brainGroup.scale.setScalar(Math.max(0.15,Math.min(2.0,s)));
+},{passive:false});
 
 function doRaycast(x,y){
   if(!brainGroup.visible)return;
@@ -334,26 +314,23 @@ function doRaycast(x,y){
 // ── Render loop ───────────────────────────────────────
 let t=0;
 renderer.setAnimationLoop(()=>{
-  t+=0.016; frameCount++;
+  t+=0.016;
   pt.position.set(Math.sin(t*.5)*3,2,Math.cos(t*.4)*3);
-
-  // Escanear cada 3 frames (~20fps) para no saturar el hilo principal
-  if(frameCount%3===0) tryQRScan();
-
-  // Seguir suavemente la posición del QR (no durante drag para no interferir)
-  if(qrVisible&&!isDragging){
-    brainGroup.position.lerp(targetPos,0.35);
-    // Escala suave según distancia al QR
-    const cs=brainGroup.scale.x;
-    brainGroup.scale.setScalar(cs+(targetScale-cs)*0.2);
+  // Rotación final = arrastre manual + giroscopio (se suman)
+  if(brainPlaced){
+    brainGroup.rotation.set(
+      manualRotX+gyroRotX,
+      manualRotY+gyroRotY,
+      0
+    );
   }
-
   renderer.render(scene,camera);
 });
 
 // ── Inicio ────────────────────────────────────────────
 async function startAR(){
   document.getElementById('start-overlay').classList.add('hidden');
+  requestGyro();
   const video=document.getElementById('video-bg');
   try{
     const stream=await navigator.mediaDevices.getUserMedia({
@@ -361,6 +338,7 @@ async function startAR(){
     });
     video.srcObject=stream; await video.play();
   }catch(e){setMsg('SIN ACCESO A CAMARA','');return;}
+  setMsg('TOCA LA PANTALLA PARA COLOCAR EL CEREBRO');
   updateCounter();
 }
 function setMsg(t,c=''){const e=document.getElementById('msg');e.textContent=t;e.className=c;}
