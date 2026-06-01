@@ -61,8 +61,8 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 <div id="start-overlay">
   <h2>MODO AR</h2>
   <div class="inst"><div class="inst-n">1</div><p>Pulsa ACTIVAR y concede el permiso de camara.</p></div>
-  <div class="inst"><div class="inst-n">2</div><p>Toca cualquier punto de la pantalla para colocar el cerebro ahi.</p></div>
-  <div class="inst"><div class="inst-n">3</div><p>Inclina el celular para rotarlo. Arrastra con el dedo para girarlo. Pellizca para el tamano.</p></div>
+  <div class="inst"><div class="inst-n">2</div><p>Toca la pantalla para colocar el cerebro.</p></div>
+  <div class="inst"><div class="inst-n">3</div><p>Inclina el celular para rotarlo en el espacio. Arrastra con el dedo para girarlo manualmente.</p></div>
   <button id="start-btn" onclick="startAR()">&#9658;&nbsp; ACTIVAR AR</button>
 </div>
 <div id="complete-modal">
@@ -113,7 +113,11 @@ const BASE_HEX  = [0x1a2444,0x112a1e,0x251135,0x2a2210,0x2a1808,0x2a0d18];
 const ACTIVE_HEX= [0x4d88ff,0x44dd88,0xbb55ff,0xffcc33,0xff7733,0xff4477];
 const SEEN_HEX  = [0x2a4a99,0x1f6644,0x5a2a99,0x887033,0x883a22,0x881a33];
 
-const brainGroup=new THREE.Group(); brainGroup.visible=false; scene.add(brainGroup);
+const brainGroup=new THREE.Group();
+brainGroup.position.set(0,0,0);
+brainGroup.visible=false;
+scene.add(brainGroup);
+
 const regionMeshes=[];
 REGION_B64.forEach((b64,i)=>{
   const geo=new THREE.BufferGeometry();
@@ -169,8 +173,8 @@ function startCountdown(){
 function goToQuiz(){window.location.href='/?startQuiz=1';}
 
 // ── Animación build-up ────────────────────────────────
-function buildReveal(pos){
-  brainGroup.position.copy(pos); brainGroup.visible=true;
+function buildReveal(){
+  brainGroup.visible=true;
   regionMeshes.forEach(m=>{m.visible=false;m.material.opacity=0;});
   regionMeshes.forEach((mesh,i)=>{
     setTimeout(()=>{
@@ -181,46 +185,32 @@ function buildReveal(pos){
   });
 }
 
-// ── Tap para colocar cerebro ──────────────────────────
-let brainPlaced=false;
-// Plano z=0 para intersección de rayo
-const _raycaster=new THREE.Raycaster();
-const _plane=new THREE.Plane(new THREE.Vector3(0,0,1),0);
-const _hitPoint=new THREE.Vector3();
-
-function placeBrain(screenX, screenY){
-  const ndc=new THREE.Vector2((screenX/innerWidth)*2-1,-((screenY/innerHeight)*2-1));
-  _raycaster.setFromCamera(ndc,camera);
-  if(_raycaster.ray.intersectPlane(_plane,_hitPoint)){
-    buildReveal(_hitPoint.clone());
-  } else {
-    buildReveal(new THREE.Vector3(0,0,0));
-  }
-  brainPlaced=true;
-  setMsg('INCLINA O ARRASTRA PARA ROTAR · TOCA UNA REGION','found');
-  updateCounter();
-}
-
-// ── Rotación: giroscopio + arrastre ──────────────────
-// Las dos rotaciones se suman: manualRot (arrastre) + gyroRot (giroscopio)
-let manualRotX=0, manualRotY=0;
-let gyroRotX=0, gyroRotY=0;
-let lastBeta=null, lastGamma=null;
-let hasGyro=false;
+// ── Rotación: giroscopio (absoluto) + arrastre manual ─
+//
+// El giroscopio da la orientación ABSOLUTA del teléfono.
+// Al invertirla, el cerebro parece estar fijo en el mundo
+// (world-locked): cuando inclinas el teléfono, el cerebro
+// se mueve en pantalla como si estuviera anclado al espacio.
+//
+// El arrastre manual añade un offset encima del world-lock.
+//
+const deviceQuat   = new THREE.Quaternion();   // orientación absoluta del teléfono
+const manualQuat   = new THREE.Quaternion();   // giro manual acumulado
+const currentQuat  = new THREE.Quaternion();   // quaternion suavizado aplicado al cerebro
+const _euler       = new THREE.Euler();
+// Corrección de eje para pantalla portrait: -90° en X
+const _screenCorr  = new THREE.Quaternion(-Math.sqrt(0.5),0,0,Math.sqrt(0.5));
+let hasGyro = false;
 
 function onOrientation(e){
-  if(e.beta==null||e.gamma==null) return;
-  if(lastBeta!==null){
-    const dBeta=e.beta-lastBeta;
-    let dGamma=e.gamma-lastGamma;
-    // Evitar saltos de wraparound (360°→0°)
-    if(dGamma>180) dGamma-=360;
-    if(dGamma<-180) dGamma+=360;
-    // Solo aplicar si es un movimiento pequeño (evitar sacudidas)
-    if(Math.abs(dBeta)<25)  gyroRotX+=dBeta*0.016;
-    if(Math.abs(dGamma)<25) gyroRotY+=dGamma*0.016;
-  }
-  lastBeta=e.beta; lastGamma=e.gamma;
+  if(e.alpha==null||e.beta==null||e.gamma==null) return;
+  _euler.set(
+    THREE.MathUtils.degToRad(e.beta),
+    THREE.MathUtils.degToRad(e.alpha),
+    THREE.MathUtils.degToRad(-e.gamma),
+    'YXZ'
+  );
+  deviceQuat.setFromEuler(_euler).multiply(_screenCorr);
   hasGyro=true;
 }
 
@@ -237,6 +227,7 @@ function requestGyro(){
 // ── Touch / Mouse ─────────────────────────────────────
 let isDragging=false,dragPx=0,dragPy=0;
 let touchStart={x:0,y:0},isPinching=false,pinchStartDist=0,pinchStartScale=1;
+let brainPlaced=false;
 
 function getTouchDist(t){const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;return Math.sqrt(dx*dx+dy*dy);}
 
@@ -251,11 +242,13 @@ renderer.domElement.addEventListener('touchmove',e=>{
   if(e.touches.length===2&&isPinching){
     const s=pinchStartScale*(getTouchDist(e.touches)/pinchStartDist);
     brainGroup.scale.setScalar(Math.max(0.15,Math.min(2.0,s)));
-  }else if(e.touches.length===1&&isDragging){
+  }else if(e.touches.length===1&&isDragging&&brainPlaced){
     const cx=e.touches[0].clientX,cy=e.touches[0].clientY;
-    manualRotY+=(cx-dragPx)*.012;
-    manualRotX+=(cy-dragPy)*.012;
-    manualRotX=Math.max(-Math.PI,Math.min(Math.PI,manualRotX));
+    const dx=cx-dragPx, dy2=cy-dragPy;
+    // Rotar manualQuat con el delta del arrastre
+    const qY=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), dx*0.012);
+    const qX=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), dy2*0.012);
+    manualQuat.premultiply(qY).premultiply(qX);
     dragPx=cx;dragPy=cy;
   }
 },{passive:false});
@@ -267,10 +260,16 @@ renderer.domElement.addEventListener('touchend',e=>{
     if(isDragging){
       isDragging=false;
       const cx=e.changedTouches[0].clientX,cy=e.changedTouches[0].clientY;
-      const moved=Math.abs(cx-touchStart.x)<10&&Math.abs(cy-touchStart.y)<10;
-      if(moved){
-        if(!brainPlaced) placeBrain(touchStart.x,touchStart.y);
-        else doRaycast(touchStart.x,touchStart.y);
+      const wasTap=Math.abs(cx-touchStart.x)<10&&Math.abs(cy-touchStart.y)<10;
+      if(wasTap){
+        if(!brainPlaced){
+          brainPlaced=true;
+          buildReveal();
+          setMsg('INCLINA O ARRASTRA PARA ROTAR · TOCA UNA REGION','found');
+          updateCounter();
+        } else {
+          doRaycast(cx,cy);
+        }
       }
     }
   }
@@ -279,16 +278,16 @@ renderer.domElement.addEventListener('touchend',e=>{
 // Mouse (desktop)
 renderer.domElement.addEventListener('mousedown',e=>{isDragging=true;dragPx=e.clientX;dragPy=e.clientY;touchStart={x:e.clientX,y:e.clientY};});
 window.addEventListener('mousemove',e=>{
-  if(!isDragging)return;
-  manualRotY+=(e.clientX-dragPx)*.012;
-  manualRotX+=(e.clientY-dragPy)*.012;
-  manualRotX=Math.max(-Math.PI,Math.min(Math.PI,manualRotX));
+  if(!isDragging||!brainPlaced)return;
+  const qY=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),(e.clientX-dragPx)*.012);
+  const qX=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),(e.clientY-dragPy)*.012);
+  manualQuat.premultiply(qY).premultiply(qX);
   dragPx=e.clientX;dragPy=e.clientY;
 });
 window.addEventListener('mouseup',e=>{
   if(isDragging){isDragging=false;
     if(Math.abs(e.clientX-touchStart.x)<5&&Math.abs(e.clientY-touchStart.y)<5){
-      if(!brainPlaced) placeBrain(e.clientX,e.clientY);
+      if(!brainPlaced){brainPlaced=true;buildReveal();setMsg('INCLINA O ARRASTRA PARA ROTAR · TOCA UNA REGION','found');updateCounter();}
       else doRaycast(e.clientX,e.clientY);
     }
   }
@@ -316,14 +315,21 @@ let t=0;
 renderer.setAnimationLoop(()=>{
   t+=0.016;
   pt.position.set(Math.sin(t*.5)*3,2,Math.cos(t*.4)*3);
-  // Rotación final = arrastre manual + giroscopio (se suman)
+
   if(brainPlaced){
-    brainGroup.rotation.set(
-      manualRotX+gyroRotX,
-      manualRotY+gyroRotY,
-      0
-    );
+    let target;
+    if(hasGyro){
+      // World-locked: inverso de orientación del teléfono + giro manual encima
+      const worldLock=deviceQuat.clone().invert();
+      target=manualQuat.clone().multiply(worldLock);
+    }else{
+      target=manualQuat.clone();
+    }
+    // Suavizado para evitar jitter
+    currentQuat.slerp(target,0.12);
+    brainGroup.quaternion.copy(currentQuat);
   }
+
   renderer.render(scene,camera);
 });
 
@@ -333,9 +339,7 @@ async function startAR(){
   requestGyro();
   const video=document.getElementById('video-bg');
   try{
-    const stream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}
-    });
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}});
     video.srcObject=stream; await video.play();
   }catch(e){setMsg('SIN ACCESO A CAMARA','');return;}
   setMsg('TOCA LA PANTALLA PARA COLOCAR EL CEREBRO');
