@@ -11,20 +11,41 @@
 html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Press Start 2P',monospace}
 #video-bg{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none}
 canvas{position:fixed!important;top:0!important;left:0!important;width:100%!important;height:100%!important;z-index:1;pointer-events:auto}
+
+/* Glitch overlay — se activa con JS */
+#glitch{position:fixed;inset:0;z-index:5;pointer-events:none;display:none}
+#glitch.on{display:block}
+#glitch::before{
+  content:'';position:absolute;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.18) 2px,rgba(0,0,0,.18) 4px);
+  animation:scan .08s steps(1) infinite;
+}
+#glitch::after{
+  content:'';position:absolute;inset:0;
+  background:rgba(0,255,255,.07);
+  mix-blend-mode:screen;
+  animation:shift .12s steps(1) infinite;
+}
+@keyframes scan{0%{background-position:0 0}100%{background-position:0 100%}}
+@keyframes shift{0%{transform:translateX(-3px)}50%{transform:translateX(4px)}100%{transform:translateX(-2px)}}
+
 #hud{position:fixed;inset:0;z-index:100;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between}
-#top{padding:14px 16px;background:linear-gradient(to bottom,rgba(5,5,8,.85),transparent);display:flex;justify-content:space-between;align-items:flex-start}
+#top{padding:14px 16px;background:linear-gradient(to bottom,rgba(5,5,8,.88),transparent);display:flex;justify-content:space-between;align-items:flex-start}
 #logo p:first-child{font-size:9px;color:#e56c78;letter-spacing:.2em;opacity:.85}
 #logo p:last-child{font-size:13px;color:#fff;letter-spacing:.1em;margin-top:3px}
 #back-btn{pointer-events:auto;padding:9px 14px;background:rgba(5,5,8,.9);border:1px solid rgba(229,108,120,.5);color:#e56c78;font-size:9px;cursor:pointer}
-#bottom{padding:14px 16px 24px;background:linear-gradient(to top,rgba(5,5,8,.75),transparent);text-align:center}
+#bottom{padding:14px 16px 24px;background:linear-gradient(to top,rgba(5,5,8,.78),transparent);text-align:center}
 #msg{font-size:10px;color:rgba(255,255,255,.6);letter-spacing:.08em;line-height:1.8}
 #msg.found{color:#50e3b0}
-#counter{font-size:9px;color:rgba(255,255,255,.4);letter-spacing:.06em;margin-top:4px}
+#counter{font-size:9px;color:rgba(255,255,255,.45);letter-spacing:.07em;margin-top:6px;transition:color .3s}
+#counter.complete{color:#50e3b0}
+
 #start-overlay{position:fixed;inset:0;z-index:200;background:rgba(5,5,8,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:28px}
 #start-overlay.hidden{display:none}
 #start-overlay h2{font-size:11px;color:#e56c78;letter-spacing:.12em;line-height:2;text-align:center}
 #start-overlay p{font-size:9px;color:rgba(255,255,255,.4);line-height:2;text-align:center;max-width:280px}
 #start-btn{padding:14px 32px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:11px;font-family:'Press Start 2P',monospace;letter-spacing:.08em;box-shadow:4px 4px 0 rgba(229,108,120,.3);pointer-events:auto}
+
 #panel{position:fixed;bottom:0;left:0;right:0;z-index:150;background:rgba(5,5,8,.97);border-top:2px solid rgba(229,108,120,.3);padding:20px 18px 36px;transform:translateY(100%);transition:transform .3s ease}
 #panel.open{transform:translateY(0)}
 #p-num{font-size:32px;font-weight:700;opacity:.12;line-height:1;margin-bottom:2px;font-family:monospace;color:#fff}
@@ -36,6 +57,7 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 <body>
 
 <video id="video-bg" autoplay playsinline muted></video>
+<div id="glitch"></div>
 
 <div id="hud">
   <div id="top">
@@ -44,7 +66,7 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
   </div>
   <div id="bottom">
     <p id="msg"></p>
-    <p id="counter"></p>
+    <p id="counter">0 / 6 REGIONES</p>
   </div>
 </div>
 
@@ -76,7 +98,8 @@ function decodeF32(b64){
 
 // ── Three.js ──────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-renderer.setClearColor(0x000000, 0);
+// Fondo ligeramente oscuro (40% negro) para resaltar el cerebro
+renderer.setClearColor(0x000000, 0.40);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.xr.enabled = true;
@@ -131,7 +154,7 @@ wGeo.computeVertexNormals();
 brainGroup.add(new THREE.Mesh(wGeo,new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.08})));
 brainGroup.add(new THREE.Mesh(wGeo.clone(),new THREE.MeshBasicMaterial({color:0x00ffcc,wireframe:true,transparent:true,opacity:0.04})));
 
-// Reticle hit-test
+// Reticle
 const reticleGeo=new THREE.RingGeometry(0.08,0.11,32).rotateX(-Math.PI/2);
 const reticle=new THREE.Mesh(reticleGeo,new THREE.MeshBasicMaterial({color:0xe56c78,transparent:true,opacity:0.75,side:THREE.DoubleSide}));
 reticle.matrixAutoUpdate=false;
@@ -176,6 +199,7 @@ function selectRegion(i){
   document.getElementById('p-desc').textContent=r.desc;
   document.getElementById('panel').style.borderColor=r.hex+'44';
   document.getElementById('panel').classList.add('open');
+  // Sincronizar con la app principal
   try{const v=JSON.parse(localStorage.getItem('ne_viewed')||'[]');if(!v.includes(i)){v.push(i);localStorage.setItem('ne_viewed',JSON.stringify(v));};}catch(e){}
   try{new BroadcastChannel('ne_brain').postMessage({type:'regionViewed',index:i,name:r.name});}catch(e){}
 }
@@ -187,49 +211,96 @@ function deselectAll(){
 }
 
 function updateCounter(){
-  document.getElementById('counter').textContent=seenRegions.size+' / 6 REGIONES';
+  const n=seenRegions.size;
+  const el=document.getElementById('counter');
+  el.textContent=n+' / 6 REGIONES';
+  el.className=n===6?'complete':'';
+}
+
+// ── Animación glitch al aparecer ──────────────────────
+function glitchReveal(basePos){
+  const glitch=document.getElementById('glitch');
+
+  // Secuencia: [visible, duración ms]
+  const seq=[[false,60],[true,50],[false,40],[true,80],[false,30],
+             [true,60],[false,40],[true,50],[false,20],[true,70],
+             [false,30],[true,60],[false,20],[true,0]];
+
+  let idx=0;
+  glitch.classList.add('on');
+
+  function step(){
+    if(idx>=seq.length){
+      glitch.classList.remove('on');
+      brainGroup.visible=true;
+      brainGroup.position.copy(basePos);
+      // Restaurar colores normales tras el glitch
+      regionMeshes.forEach(m=>{
+        m.material.emissive.setHex(0x000000);
+        m.material.emissiveIntensity=0;
+      });
+      updateColors();
+      return;
+    }
+    const [vis,dur]=seq[idx++];
+    brainGroup.visible=vis;
+    if(vis){
+      // Jitter de posición y color blanco durante el glitch
+      brainGroup.position.set(
+        basePos.x+(Math.random()-.5)*0.08,
+        basePos.y+(Math.random()-.5)*0.05,
+        basePos.z+(Math.random()-.5)*0.04
+      );
+      regionMeshes.forEach(m=>{
+        m.material.color.setHex(0xffffff);
+        m.material.emissive.setHex(0xffffff);
+        m.material.emissiveIntensity=0.8+Math.random()*0.5;
+        m.material.opacity=0.7+Math.random()*0.3;
+      });
+    }
+    if(idx<seq.length) setTimeout(step, dur);
+    else step();
+  }
+
+  setTimeout(step, 80);
 }
 
 // ── Touch: drag=rotar, pinch=escalar, tap=seleccionar ─
-let rotX=0, rotY=0;
-let isDragging=false, dragPx=0, dragPy=0;
-let touchStart={x:0, y:0};
-let isPinching=false, pinchStartDist=0, pinchStartScale=1;
+let rotX=0,rotY=0;
+let isDragging=false,dragPx=0,dragPy=0;
+let touchStart={x:0,y:0};
+let isPinching=false,pinchStartDist=0,pinchStartScale=1;
 let lastXrCam=camera;
+let fallbackMode=false;
 
 function getTouchDist(t){
-  const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY;
+  const dx=t[0].clientX-t[1].clientX,dy=t[0].clientY-t[1].clientY;
   return Math.sqrt(dx*dx+dy*dy);
 }
 
 renderer.domElement.addEventListener('touchstart',e=>{
   e.preventDefault();
   if(e.touches.length===2){
-    isDragging=false;
-    isPinching=true;
+    isDragging=false; isPinching=true;
     pinchStartDist=getTouchDist(e.touches);
     pinchStartScale=brainGroup.scale.x;
-  } else if(e.touches.length===1){
-    isPinching=false;
-    isDragging=true;
-    dragPx=e.touches[0].clientX;
-    dragPy=e.touches[0].clientY;
-    touchStart={x:dragPx, y:dragPy};
+  }else if(e.touches.length===1){
+    isPinching=false; isDragging=true;
+    dragPx=e.touches[0].clientX; dragPy=e.touches[0].clientY;
+    touchStart={x:dragPx,y:dragPy};
   }
 },{passive:false});
 
 renderer.domElement.addEventListener('touchmove',e=>{
   e.preventDefault();
-  if(e.touches.length===2 && isPinching){
+  if(e.touches.length===2&&isPinching){
     const dist=getTouchDist(e.touches);
-    const newScale=pinchStartScale*(dist/pinchStartDist);
-    const min=fallbackMode?0.15:0.04;
-    const max=fallbackMode?2.0:0.8;
-    brainGroup.scale.setScalar(Math.max(min,Math.min(max,newScale)));
-  } else if(e.touches.length===1 && isDragging && brainGroup.visible){
-    const cx=e.touches[0].clientX, cy=e.touches[0].clientY;
-    rotY+=(cx-dragPx)*0.01;
-    rotX+=(cy-dragPy)*0.01;
+    const s=pinchStartScale*(dist/pinchStartDist);
+    const mn=fallbackMode?.15:.04,mx=fallbackMode?2.0:.8;
+    brainGroup.scale.setScalar(Math.max(mn,Math.min(mx,s)));
+  }else if(e.touches.length===1&&isDragging&&brainGroup.visible){
+    const cx=e.touches[0].clientX,cy=e.touches[0].clientY;
+    rotY+=(cx-dragPx)*.01; rotX+=(cy-dragPy)*.01;
     rotX=Math.max(-1.4,Math.min(1.4,rotX));
     brainGroup.rotation.set(rotX,rotY,0);
     dragPx=cx; dragPy=cy;
@@ -242,37 +313,35 @@ renderer.domElement.addEventListener('touchend',e=>{
     isPinching=false;
     if(isDragging){
       isDragging=false;
-      const cx=e.changedTouches[0].clientX, cy=e.changedTouches[0].clientY;
-      const dx=Math.abs(cx-touchStart.x), dy=Math.abs(cy-touchStart.y);
-      if(dx<10&&dy<10) doRaycast(touchStart.x,touchStart.y);
+      const cx=e.changedTouches[0].clientX,cy=e.changedTouches[0].clientY;
+      if(Math.abs(cx-touchStart.x)<10&&Math.abs(cy-touchStart.y)<10) doRaycast(touchStart.x,touchStart.y);
     }
   }
 },{passive:false});
 
-// Mouse (desktop)
 renderer.domElement.addEventListener('mousedown',e=>{isDragging=true;dragPx=e.clientX;dragPy=e.clientY;touchStart={x:e.clientX,y:e.clientY};});
 window.addEventListener('mousemove',e=>{
-  if(!isDragging||!brainGroup.visible) return;
-  rotY+=(e.clientX-dragPx)*0.01; rotX+=(e.clientY-dragPy)*0.01;
+  if(!isDragging||!brainGroup.visible)return;
+  rotY+=(e.clientX-dragPx)*.01;rotX+=(e.clientY-dragPy)*.01;
   rotX=Math.max(-1.4,Math.min(1.4,rotX));
   brainGroup.rotation.set(rotX,rotY,0);
-  dragPx=e.clientX; dragPy=e.clientY;
+  dragPx=e.clientX;dragPy=e.clientY;
 });
 window.addEventListener('mouseup',e=>{
-  if(isDragging){isDragging=false;const dx=Math.abs(e.clientX-touchStart.x),dy=Math.abs(e.clientY-touchStart.y);if(dx<5&&dy<5)doRaycast(e.clientX,e.clientY);}
+  if(isDragging){isDragging=false;if(Math.abs(e.clientX-touchStart.x)<5&&Math.abs(e.clientY-touchStart.y)<5)doRaycast(e.clientX,e.clientY);}
 });
 renderer.domElement.addEventListener('wheel',e=>{
   e.preventDefault();
-  if(!brainGroup.visible) return;
-  const s=brainGroup.scale.x*(1-e.deltaY*0.001);
-  const min=fallbackMode?0.15:0.04; const max=fallbackMode?2.0:0.8;
-  brainGroup.scale.setScalar(Math.max(min,Math.min(max,s)));
+  if(!brainGroup.visible)return;
+  const s=brainGroup.scale.x*(1-e.deltaY*.001);
+  const mn=fallbackMode?.15:.04,mx=fallbackMode?2.0:.8;
+  brainGroup.scale.setScalar(Math.max(mn,Math.min(mx,s)));
 },{passive:false});
 
 function doRaycast(x,y){
-  if(!brainGroup.visible) return;
+  if(!brainGroup.visible)return;
   if(document.getElementById('panel').classList.contains('open')){deselectAll();return;}
-  const nx=(x/innerWidth)*2-1, ny=-(y/innerHeight)*2+1;
+  const nx=(x/innerWidth)*2-1,ny=-(y/innerHeight)*2+1;
   const ray=new THREE.Raycaster();
   const cam=renderer.xr.isPresenting?lastXrCam:camera;
   ray.setFromCamera(new THREE.Vector2(nx,ny),cam);
@@ -282,15 +351,12 @@ function doRaycast(x,y){
 }
 
 // ── WebXR ─────────────────────────────────────────────
-let hitTestSource=null;
-let brainPlaced=false;
-let fallbackMode=false;
-let xrSession=null;
+let hitTestSource=null,brainPlaced=false,xrSession=null;
 
 async function startAR(){
   document.getElementById('start-overlay').classList.add('hidden');
   const ok=navigator.xr&&await navigator.xr.isSessionSupported('immersive-ar').catch(()=>false);
-  if(!ok){return startFallback();}
+  if(!ok)return startFallback();
   try{
     xrSession=await navigator.xr.requestSession('immersive-ar',{
       requiredFeatures:['hit-test'],
@@ -315,6 +381,7 @@ async function startAR(){
 
   brainGroup.scale.setScalar(0.15);
   setMsg('TOCA LA PANTALLA PARA COLOCAR EL CEREBRO');
+  updateCounter();
 
   renderer.setAnimationLoop((time,frame)=>{
     if(frame){
@@ -325,55 +392,61 @@ async function startAR(){
         if(hits.length>0){
           const pose=hits[0].getPose(refSpace);
           if(pose){reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);}
-        }else{reticle.visible=false;}
+        }else reticle.visible=false;
       }
     }
-    pt.position.set(Math.sin(Date.now()*0.0005)*2,1.5,Math.cos(Date.now()*0.0004)*2);
+    pt.position.set(Math.sin(Date.now()*.0005)*2,1.5,Math.cos(Date.now()*.0004)*2);
     renderer.render(scene,camera);
   });
 }
 
 function onXrTap(){
-  if(brainPlaced) return;  // ya colocado: no reposicionar
+  if(brainPlaced)return;
+  const basePos=new THREE.Vector3();
   if(reticle.visible){
-    brainGroup.position.setFromMatrixPosition(reticle.matrix);
+    basePos.setFromMatrixPosition(reticle.matrix);
   }else{
     const xrCam=renderer.xr.getCamera(camera);
-    const pos=new THREE.Vector3(), dir=new THREE.Vector3();
-    xrCam.getWorldPosition(pos); xrCam.getWorldDirection(dir);
-    brainGroup.position.copy(pos).addScaledVector(dir,1.5);
-    brainGroup.position.y=pos.y-0.3;
+    const dir=new THREE.Vector3();
+    xrCam.getWorldPosition(basePos);
+    xrCam.getWorldDirection(dir);
+    basePos.addScaledVector(dir,1.5);
+    basePos.y-=0.3;
   }
-  brainGroup.rotation.set(0,0,0); rotX=0; rotY=0;
-  brainGroup.visible=true;
-  brainPlaced=true;
+  brainGroup.position.copy(basePos);
+  brainGroup.rotation.set(0,0,0); rotX=0;rotY=0;
   reticle.visible=false;
+  brainPlaced=true;
   setMsg('ARRASTRA · PELLIZCA PARA ZOOM · TOCA UNA REGION','found');
   updateCounter();
+  glitchReveal(basePos);
 }
 
-// ── Fallback: cámara, SIN giroscopio (cerebro estático) ──
+// ── Fallback: cámara, cerebro estático ───────────────
 async function startFallback(){
   fallbackMode=true;
   const vb=document.getElementById('video-bg');
   vb.style.display='block';
   try{
     const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    vb.srcObject=stream; await vb.play();
+    vb.srcObject=stream;await vb.play();
   }catch(e){}
 
   camera.position.set(0,0,3);
   brainGroup.position.set(0,0,0);
   brainGroup.scale.setScalar(0.55);
-  brainGroup.visible=true;
+  brainGroup.rotation.set(0,0,0);
+  rotX=0;rotY=0;
   brainPlaced=true;
   setMsg('ARRASTRA · PELLIZCA PARA ZOOM · TOCA UNA REGION','found');
   updateCounter();
 
+  glitchReveal(new THREE.Vector3(0,0,0));
+
   let t=0;
   renderer.setAnimationLoop(()=>{
     t+=0.016;
-    pt.position.set(Math.sin(t*0.5)*3,2,Math.cos(t*0.4)*3);
+    pt.position.set(Math.sin(t*.5)*3,2,Math.cos(t*.4)*3);
     renderer.render(scene,camera);
   });
 }
