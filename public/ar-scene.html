@@ -60,11 +60,7 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 <body>
 <video id="video-bg" autoplay playsinline muted></video>
 <div id="qr-frame"><div class="co tl"></div><div class="co tr"></div><div class="co bl"></div><div class="co br"></div><div class="sl"></div></div>
-<div id="countdown-banner">
-  <span class="cd-lbl">&#9733; ZONAS COMPLETADAS &mdash; QUIZ EN</span>
-  <span id="cd-num">10</span>
-  <span class="cd-lbl">SEG...</span>
-</div>
+<div id="countdown-banner"><span class="cd-lbl">&#9733; ZONAS COMPLETADAS &mdash; QUIZ EN</span><span id="cd-num">10</span><span class="cd-lbl">SEG...</span></div>
 <div id="hud">
   <div id="top">
     <div id="logo"><p>// MODO AR</p><p>NEUROEXPLORA</p></div>
@@ -105,7 +101,7 @@ function decodeF32(b64){
   return new Float32Array(buf);
 }
 
-// ── Three.js setup ────────────────────────────────────
+// ── Three.js ──────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
 renderer.setClearColor(0x000000, 0.35);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -113,7 +109,6 @@ renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-// Cámara en z=3 mirando al origen — escala igual que en brain_total.html
 const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.01, 100);
 camera.position.set(0, 0, 3);
 scene.add(camera);
@@ -122,12 +117,7 @@ scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 const d1=new THREE.DirectionalLight(0xffffff,1.0); d1.position.set(2,3,4); scene.add(d1);
 const d2=new THREE.DirectionalLight(0x8899ff,0.35); d2.position.set(-3,-1,-2); scene.add(d2);
 const pt=new THREE.PointLight(0xffffff,0.6,20); scene.add(pt);
-
-window.addEventListener('resize',()=>{
-  renderer.setSize(innerWidth,innerHeight);
-  camera.aspect=innerWidth/innerHeight;
-  camera.updateProjectionMatrix();
-});
+window.addEventListener('resize',()=>{ renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); });
 
 // ── Cerebro ───────────────────────────────────────────
 const BASE_HEX  = [0x1a2444,0x112a1e,0x251135,0x2a2210,0x2a1808,0x2a0d18];
@@ -147,27 +137,22 @@ REGION_B64.forEach((b64,i)=>{
 });
 const allPos=[];
 REGION_B64.forEach(b64=>{const f=decodeF32(b64);for(let j=0;j<f.length;j++)allPos.push(f[j]);});
-const wGeo=new THREE.BufferGeometry();
-wGeo.setAttribute('position',new THREE.Float32BufferAttribute(allPos,3));
-wGeo.computeVertexNormals();
+const wGeo=new THREE.BufferGeometry(); wGeo.setAttribute('position',new THREE.Float32BufferAttribute(allPos,3)); wGeo.computeVertexNormals();
 brainGroup.add(new THREE.Mesh(wGeo,new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.08})));
 brainGroup.add(new THREE.Mesh(wGeo.clone(),new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.04})));
 
-// ── Regiones / conteo ─────────────────────────────────
-const seenRegions=new Set();
-let activeRegion=-1, countdownStarted=false;
-
+// ── Regiones ──────────────────────────────────────────
+const seenRegions=new Set(); let activeRegion=-1, countdownStarted=false;
 function updateColors(){
   regionMeshes.forEach((m,j)=>{
-    if(!m.visible) return;
+    if(!m.visible)return;
     if(j===activeRegion){m.material.color.setHex(ACTIVE_HEX[j]);m.material.emissive.setHex(ACTIVE_HEX[j]);m.material.emissiveIntensity=0.25;m.material.opacity=1.0;}
     else if(seenRegions.has(j)){m.material.color.setHex(SEEN_HEX[j]);m.material.emissive.setHex(0x000000);m.material.emissiveIntensity=0;m.material.opacity=0.75;}
     else{m.material.color.setHex(BASE_HEX[j]);m.material.emissive.setHex(0x000000);m.material.emissiveIntensity=0;m.material.opacity=0.45;}
   });
 }
-
 function selectRegion(i){
-  seenRegions.add(i); activeRegion=i; updateColors(); updateCounter();
+  seenRegions.add(i);activeRegion=i;updateColors();updateCounter();
   const r=REGIONS[i];
   document.getElementById('p-num').textContent=String(i+1).padStart(2,'0');
   document.getElementById('p-num').style.color=r.hex;
@@ -180,7 +165,6 @@ function selectRegion(i){
   try{new BroadcastChannel('ne_brain').postMessage({type:'regionViewed',index:i,name:r.name});}catch(e){}
   if(seenRegions.size===6&&!countdownStarted){countdownStarted=true;setTimeout(startCountdown,800);}
 }
-
 function deselectAll(){activeRegion=-1;updateColors();document.getElementById('panel').classList.remove('open');}
 function updateCounter(){const n=seenRegions.size;const el=document.getElementById('counter');el.textContent=n+' / 6 REGIONES';el.className=n===6?'complete':'';}
 
@@ -188,144 +172,126 @@ function updateCounter(){const n=seenRegions.size;const el=document.getElementBy
 let cdInterval=null;
 function startCountdown(){
   document.getElementById('panel').classList.remove('open');
-  let s=10; document.getElementById('cd-num').textContent=s;
+  let s=10;document.getElementById('cd-num').textContent=s;
   document.getElementById('countdown-banner').classList.add('show');
   cdInterval=setInterval(()=>{s--;document.getElementById('cd-num').textContent=s;
-    if(s<=0){clearInterval(cdInterval);document.getElementById('countdown-banner').classList.remove('show');document.getElementById('complete-modal').classList.add('show');}
-  },1000);
+    if(s<=0){clearInterval(cdInterval);document.getElementById('countdown-banner').classList.remove('show');document.getElementById('complete-modal').classList.add('show');}},1000);
 }
 function goToQuiz(){window.location.href='/?startQuiz=1';}
 
 // ── Build-up animation ────────────────────────────────
 function buildReveal(pos){
-  brainGroup.position.copy(pos);
-  brainGroup.visible=true;
+  brainGroup.position.copy(pos); brainGroup.visible=true;
   regionMeshes.forEach(m=>{m.visible=false;m.material.opacity=0;});
   regionMeshes.forEach((mesh,i)=>{
     setTimeout(()=>{
       mesh.visible=true;
-      mesh.material.color.setHex(ACTIVE_HEX[i]);
-      mesh.material.emissive.setHex(ACTIVE_HEX[i]);
-      mesh.material.emissiveIntensity=0.9; mesh.material.opacity=1.0;
-      setTimeout(()=>{
-        mesh.material.emissiveIntensity=0; mesh.material.opacity=0.45;
-        mesh.material.color.setHex(BASE_HEX[i]);
-        if(i===regionMeshes.length-1) setTimeout(updateColors,80);
-      },280);
+      mesh.material.color.setHex(ACTIVE_HEX[i]);mesh.material.emissive.setHex(ACTIVE_HEX[i]);mesh.material.emissiveIntensity=0.9;mesh.material.opacity=1.0;
+      setTimeout(()=>{mesh.material.emissiveIntensity=0;mesh.material.opacity=0.45;mesh.material.color.setHex(BASE_HEX[i]);if(i===regionMeshes.length-1)setTimeout(updateColors,80);},280);
     },i*140);
   });
 }
 
-// ── QR → posición 3D con estimación de profundidad ────
-//
-// Modelo de cámara pinhole:
-//   depth_scene = (QR_SIZE_SCENE * focal_px) / qr_px
-//
-// QR_SIZE_SCENE: tamaño del QR en unidades de escena.
-// Calibrado para que un QR ~200px de lado en pantalla
-// coloque el cerebro a ~1.5 unidades de escena de la cámara.
-//
-const QR_SIZE_SCENE = 0.45;
+// ── QR → 3D ───────────────────────────────────────────
+// Convierte coordenadas de video a coordenadas de pantalla
+// replicando exactamente object-fit:cover del elemento <video>.
+function videoToScreen(vx, vy, vw, vh){
+  const sw=innerWidth, sh=innerHeight;
+  const vr=vw/vh, sr=sw/sh;
+  let x0=0, y0=0, visW=vw, visH=vh;
+  if(vr>sr){ visW=vh*sr; x0=(vw-visW)/2; }
+  else      { visH=vw/sr; y0=(vh-visH)/2; }
+  return {
+    x: ((vx-x0)/visW)*sw,
+    y: ((vy-y0)/visH)*sh,
+    // Escala: cuántos pixels de pantalla por pixel de video
+    scale: sw/visW
+  };
+}
 
-// El canvas de escaneo replica object-fit:cover del video
-// para que las coordenadas del QR coincidan con la pantalla.
+// Modelo pinhole directo: (screenX,screenY) + tamaño del QR en px pantalla → THREE.Vector3
+const QR_SCENE = 0.45; // tamaño del QR en unidades de escena (calibrado)
+function screenTo3D(sx, sy, edgePx){
+  const fovRad = camera.fov * Math.PI / 180;
+  const tanH   = Math.tan(fovRad / 2);
+  // Dirección del rayo en espacio cámara (cámara mira en -Z)
+  const dx = (sx/innerWidth  - 0.5) * 2 * tanH * camera.aspect;
+  const dy = -(sy/innerHeight - 0.5) * 2 * tanH;
+  const dz = -1.0;
+  const len = Math.sqrt(dx*dx + dy*dy + 1);
+  // Profundidad desde tamaño del QR: depth = QR_SCENE * focal / edgePx
+  const focalPx = (innerHeight/2) / tanH;
+  const depth = (QR_SCENE * focalPx) / Math.max(edgePx, 1);
+  return new THREE.Vector3(
+    camera.position.x + (dx/len)*depth,
+    camera.position.y + (dy/len)*depth,
+    camera.position.z + (dz/len)*depth
+  );
+}
+
+// ── QR scanning ───────────────────────────────────────
 const scanCanvas = document.createElement('canvas');
 const scanCtx = scanCanvas.getContext('2d', {willReadFrequently:true});
-
-function drawCover(video, canvas, ctx){
-  const vr = video.videoWidth / video.videoHeight;
-  const cr = canvas.width / canvas.height;
-  let sx=0, sy=0, sw=video.videoWidth, sh=video.videoHeight;
-  if(vr > cr){ sw = sh * cr; sx = (video.videoWidth - sw) / 2; }
-  else       { sh = sw / cr; sy = (video.videoHeight - sh) / 2; }
-  ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
-}
-
-function qrTo3D(loc, cw, ch){
-  // 4 esquinas del QR en espacio del canvas (= espacio pantalla por relación 1:1)
-  const pts = [loc.topLeftCorner, loc.topRightCorner, loc.bottomRightCorner, loc.bottomLeftCorner];
-
-  // Centro
-  const cx = pts.reduce((s,p)=>s+p.x,0)/4;
-  const cy = pts.reduce((s,p)=>s+p.y,0)/4;
-
-  // Longitud media de las 4 aristas en píxeles de pantalla
-  const edgeLengths = [
-    Math.hypot(pts[1].x-pts[0].x, pts[1].y-pts[0].y),
-    Math.hypot(pts[2].x-pts[1].x, pts[2].y-pts[1].y),
-    Math.hypot(pts[3].x-pts[2].x, pts[3].y-pts[2].y),
-    Math.hypot(pts[0].x-pts[3].x, pts[0].y-pts[3].y),
-  ];
-  const avgEdgePx = edgeLengths.reduce((s,v)=>s+v,0)/4;
-
-  // Longitud focal en píxeles a partir del FOV vertical de la cámara
-  const fovRad = camera.fov * Math.PI / 180;
-  const focalPx = (ch / 2) / Math.tan(fovRad / 2);
-
-  // Profundidad estimada (unidades de escena)
-  const depth = (QR_SIZE_SCENE * focalPx) / avgEdgePx;
-
-  // NDC del centro del QR
-  const ndcX = (cx / cw) * 2 - 1;
-  const ndcY = -((cy / ch) * 2 - 1);
-
-  // Rayo desde cámara a través del punto de pantalla
-  const rayTarget = new THREE.Vector3(ndcX, ndcY, 0.5).unproject(camera);
-  const rayDir = rayTarget.clone().sub(camera.position).normalize();
-
-  return camera.position.clone().addScaledVector(rayDir, depth);
-}
-
-// ── QR tracking loop ──────────────────────────────────
-let qrVisible = false, qrLostFrames = 0;
+let qrVisible=false, qrLostFrames=0;
 const targetPos = new THREE.Vector3();
 
 function scanQR(){
   const video = document.getElementById('video-bg');
-  if(!video.videoWidth || !video.videoHeight) return;
+  const vw=video.videoWidth, vh=video.videoHeight;
+  if(!vw||!vh) return;
 
-  // Escanear a mitad de resolución de pantalla para rendimiento
-  const SW = Math.round(innerWidth  * 0.5);
-  const SH = Math.round(innerHeight * 0.5);
-  scanCanvas.width  = SW;
-  scanCanvas.height = SH;
-  drawCover(video, scanCanvas, scanCtx);
+  // Escanear a resolución natural del video (sin distorsión cover)
+  const SW=Math.min(vw,640), SH=Math.round(SW*vh/vw);
+  scanCanvas.width=SW; scanCanvas.height=SH;
+  scanCtx.drawImage(video, 0,0, SW,SH);
 
-  const imageData = scanCtx.getImageData(0, 0, SW, SH);
-  const code = jsQR(imageData.data, SW, SH, {inversionAttempts:'dontInvert'});
+  const code = jsQR(scanCtx.getImageData(0,0,SW,SH).data, SW,SH, {inversionAttempts:'dontInvert'});
+  if(!code){ code2: {
+    const code2 = jsQR(scanCtx.getImageData(0,0,SW,SH).data, SW,SH, {inversionAttempts:'invertFirst'});
+    if(code2) handleQR(code2, SW,SH,vw,vh);
+  }
+  } else handleQR(code, SW,SH,vw,vh);
 
-  if(code){
-    qrLostFrames = 0;
-
-    // Escalar coordenadas del canvas a pantalla completa
-    const scaledLoc = {
-      topLeftCorner:     {x:code.location.topLeftCorner.x*2,     y:code.location.topLeftCorner.y*2},
-      topRightCorner:    {x:code.location.topRightCorner.x*2,    y:code.location.topRightCorner.y*2},
-      bottomRightCorner: {x:code.location.bottomRightCorner.x*2, y:code.location.bottomRightCorner.y*2},
-      bottomLeftCorner:  {x:code.location.bottomLeftCorner.x*2,  y:code.location.bottomLeftCorner.y*2},
-    };
-
-    const pos3D = qrTo3D(scaledLoc, innerWidth, innerHeight);
-    targetPos.copy(pos3D);
-
-    if(!qrVisible){
-      qrVisible = true;
-      brainGroup.scale.setScalar(0.55);
-      buildReveal(pos3D);
-      document.getElementById('qr-frame').style.opacity = '0';
-      setMsg('TOCA UNA REGION PARA EXPLORAR','found');
-      updateCounter();
-    }
-  } else {
+  if(!code){
     qrLostFrames++;
-    if(qrLostFrames === 20){
-      setMsg('APUNTA AL QR PARA SEGUIR','');
-      document.getElementById('qr-frame').style.opacity = '1';
-    }
-    if(qrLostFrames === 80){
-      // Llevar al estado de "buscando" si se perdio mucho tiempo
-      setMsg('BUSCANDO QR...','');
-    }
+    if(qrLostFrames===20&&qrVisible) setMsg('APUNTA AL QR PARA SEGUIR','');
+    if(qrLostFrames===80&&!qrVisible) setMsg('BUSCANDO QR...','');
+  }
+}
+
+function handleQR(code, SW,SH,vw,vh){
+  qrLostFrames=0;
+  const loc=code.location;
+
+  // Escalar de canvas de escaneo a video nativo
+  const toVid = p => ({x: p.x/SW*vw, y: p.y/SH*vh});
+  const corners = [loc.topLeftCorner,loc.topRightCorner,loc.bottomRightCorner,loc.bottomLeftCorner].map(toVid);
+
+  // Centro en espacio de video
+  const vCx = corners.reduce((s,p)=>s+p.x,0)/4;
+  const vCy = corners.reduce((s,p)=>s+p.y,0)/4;
+
+  // Convertir a espacio pantalla (replica object-fit:cover)
+  const sp = videoToScreen(vCx, vCy, vw, vh);
+
+  // Tamaño de aristas en espacio pantalla
+  const edgePx = ([
+    Math.hypot(corners[1].x-corners[0].x,corners[1].y-corners[0].y),
+    Math.hypot(corners[2].x-corners[1].x,corners[2].y-corners[1].y),
+    Math.hypot(corners[3].x-corners[2].x,corners[3].y-corners[2].y),
+    Math.hypot(corners[0].x-corners[3].x,corners[0].y-corners[3].y),
+  ].reduce((s,v)=>s+v,0)/4) * sp.scale;
+
+  const pos3D = screenTo3D(sp.x, sp.y, edgePx);
+  targetPos.copy(pos3D);
+
+  if(!qrVisible){
+    qrVisible=true;
+    brainGroup.scale.setScalar(0.55);
+    buildReveal(pos3D);
+    document.getElementById('qr-frame').style.opacity='0';
+    setMsg('TOCA UNA REGION PARA EXPLORAR','found');
+    updateCounter();
   }
 }
 
@@ -340,32 +306,15 @@ renderer.domElement.addEventListener('touchstart',e=>{
   if(e.touches.length===2){isDragging=false;isPinching=true;pinchStartDist=getTouchDist(e.touches);pinchStartScale=brainGroup.scale.x;}
   else if(e.touches.length===1){isPinching=false;isDragging=true;dragPx=e.touches[0].clientX;dragPy=e.touches[0].clientY;touchStart={x:dragPx,y:dragPy};}
 },{passive:false});
-
 renderer.domElement.addEventListener('touchmove',e=>{
   e.preventDefault();
-  if(e.touches.length===2&&isPinching){
-    const s=pinchStartScale*(getTouchDist(e.touches)/pinchStartDist);
-    brainGroup.scale.setScalar(Math.max(0.15,Math.min(2.0,s)));
-  }else if(e.touches.length===1&&isDragging&&brainGroup.visible){
-    const cx=e.touches[0].clientX,cy=e.touches[0].clientY;
-    rotY+=(cx-dragPx)*.01;rotX+=(cy-dragPy)*.01;
-    rotX=Math.max(-1.4,Math.min(1.4,rotX));
-    brainGroup.rotation.set(rotX,rotY,0);
-    dragPx=cx;dragPy=cy;
-  }
+  if(e.touches.length===2&&isPinching){const s=pinchStartScale*(getTouchDist(e.touches)/pinchStartDist);brainGroup.scale.setScalar(Math.max(0.15,Math.min(2.0,s)));}
+  else if(e.touches.length===1&&isDragging&&brainGroup.visible){const cx=e.touches[0].clientX,cy=e.touches[0].clientY;rotY+=(cx-dragPx)*.01;rotX+=(cy-dragPy)*.01;rotX=Math.max(-1.4,Math.min(1.4,rotX));brainGroup.rotation.set(rotX,rotY,0);dragPx=cx;dragPy=cy;}
 },{passive:false});
-
 renderer.domElement.addEventListener('touchend',e=>{
   e.preventDefault();
-  if(e.touches.length===0){
-    isPinching=false;
-    if(isDragging){isDragging=false;
-      const cx=e.changedTouches[0].clientX,cy=e.changedTouches[0].clientY;
-      if(Math.abs(cx-touchStart.x)<10&&Math.abs(cy-touchStart.y)<10) doRaycast(touchStart.x,touchStart.y);
-    }
-  }
+  if(e.touches.length===0){isPinching=false;if(isDragging){isDragging=false;const cx=e.changedTouches[0].clientX,cy=e.changedTouches[0].clientY;if(Math.abs(cx-touchStart.x)<10&&Math.abs(cy-touchStart.y)<10)doRaycast(touchStart.x,touchStart.y);}}
 },{passive:false});
-
 renderer.domElement.addEventListener('mousedown',e=>{isDragging=true;dragPx=e.clientX;dragPy=e.clientY;touchStart={x:e.clientX,y:e.clientY};});
 window.addEventListener('mousemove',e=>{if(!isDragging||!brainGroup.visible)return;rotY+=(e.clientX-dragPx)*.01;rotX+=(e.clientY-dragPy)*.01;rotX=Math.max(-1.4,Math.min(1.4,rotX));brainGroup.rotation.set(rotX,rotY,0);dragPx=e.clientX;dragPy=e.clientY;});
 window.addEventListener('mouseup',e=>{if(isDragging){isDragging=false;if(Math.abs(e.clientX-touchStart.x)<5&&Math.abs(e.clientY-touchStart.y)<5)doRaycast(e.clientX,e.clientY);}});
@@ -379,7 +328,7 @@ function doRaycast(x,y){
   const ray=new THREE.Raycaster();
   ray.setFromCamera(new THREE.Vector2(nx,ny),camera);
   const hits=ray.intersectObjects(regionMeshes.filter(m=>m.visible),false);
-  if(hits.length>0&&hits[0].object.userData.ri!==undefined) selectRegion(hits[0].object.userData.ri);
+  if(hits.length>0&&hits[0].object.userData.ri!==undefined)selectRegion(hits[0].object.userData.ri);
 }
 
 // ── Render loop ───────────────────────────────────────
@@ -387,10 +336,7 @@ let t=0;
 renderer.setAnimationLoop(()=>{
   t+=0.016;
   pt.position.set(Math.sin(t*.5)*3,2,Math.cos(t*.4)*3);
-  // Seguir posición del QR suavemente solo si no hay drag activo
-  if(qrVisible && !isDragging){
-    brainGroup.position.lerp(targetPos, 0.25);
-  }
+  if(qrVisible&&!isDragging) brainGroup.position.lerp(targetPos,0.25);
   renderer.render(scene,camera);
 });
 
@@ -399,15 +345,12 @@ async function startAR(){
   document.getElementById('start-overlay').classList.add('hidden');
   const video=document.getElementById('video-bg');
   try{
-    const stream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}
-    });
-    video.srcObject=stream; await video.play();
+    const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}});
+    video.srcObject=stream;await video.play();
   }catch(e){setMsg('SIN ACCESO A CAMARA','');return;}
-  setInterval(scanQR, 80);
+  setInterval(scanQR,80);
   updateCounter();
 }
-
 function setMsg(t,c=''){const e=document.getElementById('msg');e.textContent=t;e.className=c;}
 </script>
 </body>
