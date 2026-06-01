@@ -22,11 +22,26 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 #msg.found{color:#50e3b0}
 #counter{font-size:9px;color:rgba(255,255,255,.45);letter-spacing:.07em;margin-top:6px;transition:color .3s}
 #counter.complete{color:#50e3b0}
+
+/* Banner countdown — idéntico al del explorador 3D */
+#countdown-banner{
+  position:fixed;top:0;left:0;right:0;z-index:110;
+  background:rgba(229,108,120,.18);
+  border-bottom:1px solid rgba(229,108,120,.35);
+  backdrop-filter:blur(4px);
+  padding:10px 16px;
+  display:none;align-items:center;justify-content:center;gap:10px;
+}
+#countdown-banner.show{display:flex}
+#cd-label{font-size:9px;color:#e56c78;letter-spacing:.12em;font-family:'Courier New',monospace}
+#cd-num{font-size:18px;color:#fff;font-family:'Press Start 2P',monospace;line-height:1;text-shadow:0 0 10px #e56c78;min-width:22px;text-align:center}
+
 #start-overlay{position:fixed;inset:0;z-index:200;background:rgba(5,5,8,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:28px}
 #start-overlay.hidden{display:none}
 #start-overlay h2{font-size:11px;color:#e56c78;letter-spacing:.12em;line-height:2;text-align:center}
 #start-overlay p{font-size:9px;color:rgba(255,255,255,.4);line-height:2;text-align:center;max-width:280px}
 #start-btn{padding:14px 32px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:11px;font-family:'Press Start 2P',monospace;letter-spacing:.08em;box-shadow:4px 4px 0 rgba(229,108,120,.3);pointer-events:auto}
+
 #complete-modal{position:fixed;inset:0;z-index:300;background:rgba(5,5,8,.92);display:none;align-items:center;justify-content:center}
 #complete-modal.show{display:flex}
 #complete-inner{width:88%;max-width:340px;background:#0d0d1a;border:1px solid rgba(229,108,120,.35);padding:28px 22px;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center}
@@ -35,6 +50,7 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 #complete-title{font-size:14px;color:#fff;letter-spacing:.1em;line-height:1.6;margin-top:4px}
 #complete-desc{font-size:10px;color:rgba(255,255,255,.5);font-family:monospace;line-height:2}
 #quiz-btn{width:100%;padding:16px;background:#e56c78;color:#050508;border:none;cursor:pointer;font-size:11px;font-family:'Press Start 2P',monospace;letter-spacing:.1em;box-shadow:3px 3px 0 rgba(229,108,120,.3);pointer-events:auto}
+
 #panel{position:fixed;bottom:0;left:0;right:0;z-index:150;background:rgba(5,5,8,.97);border-top:2px solid rgba(229,108,120,.3);padding:20px 18px 36px;transform:translateY(100%);transition:transform .3s ease}
 #panel.open{transform:translateY(0)}
 #p-num{font-size:32px;font-weight:700;opacity:.12;line-height:1;margin-bottom:2px;font-family:monospace;color:#fff}
@@ -45,6 +61,13 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
 </head>
 <body>
 <video id="video-bg" autoplay playsinline muted></video>
+
+<div id="countdown-banner">
+  <span id="cd-label">&#9733; ZONAS COMPLETADAS &mdash; QUIZ EN</span>
+  <span id="cd-num">10</span>
+  <span id="cd-label">SEG...</span>
+</div>
+
 <div id="hud">
   <div id="top">
     <div id="logo"><p>// MODO AR</p><p>NEUROEXPLORA</p><p id="mode-tag"></p></div>
@@ -52,12 +75,14 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
   </div>
   <div id="bottom"><p id="msg"></p><p id="counter">0 / 6 REGIONES</p></div>
 </div>
+
 <div id="start-overlay">
   <h2>MODO AR</h2>
   <p>Toca ACTIVAR, apunta al suelo y toca la pantalla para anclar el cerebro en ese punto fisico.</p>
   <button id="start-btn" onclick="startAR()">&#9658;&nbsp; ACTIVAR AR</button>
   <p style="font-size:8px;color:rgba(255,255,255,.2)">Chrome en Android con ARCore para tracking real</p>
 </div>
+
 <div id="complete-modal">
   <div id="complete-inner">
     <div id="complete-stars">&#9733; &#9733; &#9733;</div>
@@ -66,6 +91,7 @@ canvas{position:fixed!important;top:0!important;left:0!important;width:100%!impo
     <button id="quiz-btn" onclick="goToQuiz()">&gt; IR AL QUIZ</button>
   </div>
 </div>
+
 <div id="panel">
   <button id="p-close" onclick="deselectAll()">&#xd7;</button>
   <div id="p-num">01</div><div id="p-name"></div><div id="p-desc"></div>
@@ -106,28 +132,19 @@ const BASE_HEX  = [0x1a2444, 0x112a1e, 0x251135, 0x2a2210, 0x2a1808, 0x2a0d18];
 const ACTIVE_HEX= [0x4d88ff, 0x44dd88, 0xbb55ff, 0xffcc33, 0xff7733, 0xff4477];
 const SEEN_HEX  = [0x2a4a99, 0x1f6644, 0x5a2a99, 0x887033, 0x883a22, 0x881a33];
 
-const brainGroup = new THREE.Group();
-brainGroup.visible = false;
-scene.add(brainGroup);
-
-const regionMeshes = [];
+const brainGroup=new THREE.Group(); brainGroup.visible=false; scene.add(brainGroup);
+const regionMeshes=[];
 REGION_B64.forEach((b64,i)=>{
-  const positions=decodeF32(b64);
   const geo=new THREE.BufferGeometry();
-  geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(decodeF32(b64),3));
   geo.computeVertexNormals();
-  const mat=new THREE.MeshPhongMaterial({ color:BASE_HEX[i], flatShading:true, shininess:80,
-    specular:new THREE.Color(ACTIVE_HEX[i]).multiplyScalar(0.1), transparent:true, opacity:0.45 });
-  const mesh=new THREE.Mesh(geo,mat);
-  mesh.userData.ri=i; mesh.visible=false;
+  const mat=new THREE.MeshPhongMaterial({color:BASE_HEX[i],flatShading:true,shininess:80,specular:new THREE.Color(ACTIVE_HEX[i]).multiplyScalar(0.1),transparent:true,opacity:0.45});
+  const mesh=new THREE.Mesh(geo,mat); mesh.userData.ri=i; mesh.visible=false;
   brainGroup.add(mesh); regionMeshes.push(mesh);
 });
-
 const allPos=[];
 REGION_B64.forEach(b64=>{const f=decodeF32(b64);for(let j=0;j<f.length;j++)allPos.push(f[j]);});
-const wGeo=new THREE.BufferGeometry();
-wGeo.setAttribute('position',new THREE.Float32BufferAttribute(allPos,3));
-wGeo.computeVertexNormals();
+const wGeo=new THREE.BufferGeometry(); wGeo.setAttribute('position',new THREE.Float32BufferAttribute(allPos,3)); wGeo.computeVertexNormals();
 brainGroup.add(new THREE.Mesh(wGeo,new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.08})));
 brainGroup.add(new THREE.Mesh(wGeo.clone(),new THREE.MeshBasicMaterial({color:0xff44aa,wireframe:true,transparent:true,opacity:0.04})));
 
@@ -138,13 +155,14 @@ reticle.matrixAutoUpdate=false; reticle.visible=false; scene.add(reticle);
 // ── Regiones ──────────────────────────────────────────
 const seenRegions=new Set();
 let activeRegion=-1;
+let countdownStarted=false;
 
 function updateColors(){
   regionMeshes.forEach((m,j)=>{
     if(!m.visible) return;
-    if(j===activeRegion){ m.material.color.setHex(ACTIVE_HEX[j]); m.material.emissive.setHex(ACTIVE_HEX[j]); m.material.emissiveIntensity=0.25; m.material.opacity=1.0; }
-    else if(seenRegions.has(j)){ m.material.color.setHex(SEEN_HEX[j]); m.material.emissive.setHex(0x000000); m.material.emissiveIntensity=0; m.material.opacity=0.75; }
-    else{ m.material.color.setHex(BASE_HEX[j]); m.material.emissive.setHex(0x000000); m.material.emissiveIntensity=0; m.material.opacity=0.45; }
+    if(j===activeRegion){m.material.color.setHex(ACTIVE_HEX[j]);m.material.emissive.setHex(ACTIVE_HEX[j]);m.material.emissiveIntensity=0.25;m.material.opacity=1.0;}
+    else if(seenRegions.has(j)){m.material.color.setHex(SEEN_HEX[j]);m.material.emissive.setHex(0x000000);m.material.emissiveIntensity=0;m.material.opacity=0.75;}
+    else{m.material.color.setHex(BASE_HEX[j]);m.material.emissive.setHex(0x000000);m.material.emissiveIntensity=0;m.material.opacity=0.45;}
   });
 }
 
@@ -160,36 +178,56 @@ function selectRegion(i){
   document.getElementById('panel').classList.add('open');
   try{const v=JSON.parse(localStorage.getItem('ne_viewed')||'[]');if(!v.includes(i)){v.push(i);localStorage.setItem('ne_viewed',JSON.stringify(v));};}catch(e){}
   try{new BroadcastChannel('ne_brain').postMessage({type:'regionViewed',index:i,name:r.name});}catch(e){}
-  if(seenRegions.size===6) setTimeout(showCompleteModal,600);
+  // Igual que el explorador 3D: esperar un momento y arrancar countdown
+  if(seenRegions.size===6&&!countdownStarted){
+    countdownStarted=true;
+    setTimeout(startCountdown, 800);
+  }
 }
 
-function deselectAll(){ activeRegion=-1; updateColors(); document.getElementById('panel').classList.remove('open'); }
-function updateCounter(){ const n=seenRegions.size; const el=document.getElementById('counter'); el.textContent=n+' / 6 REGIONES'; el.className=n===6?'complete':''; }
-function showCompleteModal(){ document.getElementById('panel').classList.remove('open'); document.getElementById('complete-modal').classList.add('show'); }
-function goToQuiz(){ if(xrSession){xrSession.end().catch(()=>{});} window.location.href='/?startQuiz=1'; }
+function deselectAll(){activeRegion=-1;updateColors();document.getElementById('panel').classList.remove('open');}
+function updateCounter(){const n=seenRegions.size;const el=document.getElementById('counter');el.textContent=n+' / 6 REGIONES';el.className=n===6?'complete':'';}
 
-// ── Animación: meshes aparecen uno a uno ──────────────
+// ── Countdown (igual que en el explorador 3D) ─────────
+let cdInterval=null;
+function startCountdown(){
+  document.getElementById('panel').classList.remove('open');
+  let secs=10;
+  document.getElementById('cd-num').textContent=secs;
+  document.getElementById('countdown-banner').classList.add('show');
+  cdInterval=setInterval(()=>{
+    secs--;
+    document.getElementById('cd-num').textContent=secs;
+    if(secs<=0){
+      clearInterval(cdInterval);
+      document.getElementById('countdown-banner').classList.remove('show');
+      showCompleteModal();
+    }
+  },1000);
+}
+
+function showCompleteModal(){document.getElementById('complete-modal').classList.add('show');}
+function goToQuiz(){if(xrSession){xrSession.end().catch(()=>{});}window.location.href='/?startQuiz=1';}
+
+// ── Animación build-up ────────────────────────────────
 function buildReveal(finalPos){
   brainGroup.position.copy(finalPos);
   brainGroup.visible=true;
-  regionMeshes.forEach(m=>{ m.visible=false; m.material.opacity=0; });
-
+  regionMeshes.forEach(m=>{m.visible=false;m.material.opacity=0;});
   regionMeshes.forEach((mesh,i)=>{
     setTimeout(()=>{
       mesh.visible=true;
-      // Flash con color activo
       mesh.material.color.setHex(ACTIVE_HEX[i]);
       mesh.material.emissive.setHex(ACTIVE_HEX[i]);
       mesh.material.emissiveIntensity=0.9;
       mesh.material.opacity=1.0;
-      // Settle a color base después de 280ms
       setTimeout(()=>{
         mesh.material.emissiveIntensity=0;
         mesh.material.opacity=0.45;
         mesh.material.color.setHex(BASE_HEX[i]);
         if(i===regionMeshes.length-1) setTimeout(updateColors,80);
-      }, 280);
-    }, i*140);
+      },280);
+    },i*140);
   });
 }
 
@@ -250,9 +288,9 @@ function doRaycast(x,y){
   if(hits.length>0&&hits[0].object.userData.ri!==undefined) selectRegion(hits[0].object.userData.ri);
 }
 
-// ── WebXR con Anchors para tracking estable ───────────
+// ── WebXR ─────────────────────────────────────────────
 let hitTestSourceRequested=false,hitTestSource=null,brainPlaced=false,xrSession=null;
-let brainAnchor=null, lastHitResult=null;
+let brainAnchor=null,lastHitResult=null;
 const _camPos=new THREE.Vector3(),_camDir=new THREE.Vector3();
 
 async function startAR(){
@@ -270,12 +308,11 @@ async function startAR(){
   try{renderer.xr.setReferenceSpaceType('local-floor');}catch(e){renderer.xr.setReferenceSpaceType('local');}
   await renderer.xr.setSession(xrSession);
   document.getElementById('mode-tag').textContent='WEBXR · ARCORE';
-  xrSession.addEventListener('end',()=>{ hitTestSource=null; hitTestSourceRequested=false; brainPlaced=false; brainAnchor=null; });
+  xrSession.addEventListener('end',()=>{hitTestSource=null;hitTestSourceRequested=false;brainPlaced=false;brainAnchor=null;});
 
   const controller=renderer.xr.getController(0);
   controller.addEventListener('select',onXrTap);
   scene.add(controller);
-
   brainGroup.scale.setScalar(0.15);
   setMsg('APUNTA AL SUELO Y TOCA PARA COLOCAR');
   updateCounter();
@@ -285,36 +322,22 @@ async function startAR(){
       lastXrCam=renderer.xr.getCamera(camera);
       lastXrCam.getWorldPosition(_camPos);
       lastXrCam.getWorldDirection(_camDir);
-
       if(!brainPlaced){
         if(!hitTestSourceRequested){
           const session=renderer.xr.getSession();
-          session.requestReferenceSpace('viewer').then(vs=>{
-            session.requestHitTestSource({space:vs}).then(src=>{hitTestSource=src;});
-          });
+          session.requestReferenceSpace('viewer').then(vs=>{session.requestHitTestSource({space:vs}).then(src=>{hitTestSource=src;});});
           hitTestSourceRequested=true;
         }
         if(hitTestSource){
           const refSpace=renderer.xr.getReferenceSpace();
           const hits=frame.getHitTestResults(hitTestSource);
-          if(hits.length>0){
-            lastHitResult=hits[0];
-            const pose=hits[0].getPose(refSpace);
-            if(pose){reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);}
-          }else{lastHitResult=null;reticle.visible=false;}
+          if(hits.length>0){lastHitResult=hits[0];const pose=hits[0].getPose(refSpace);if(pose){reticle.visible=true;reticle.matrix.fromArray(pose.transform.matrix);}}
+          else{lastHitResult=null;reticle.visible=false;}
         }
       }
-
-      // Anchor: actualizar posición del cerebro cada frame para tracking estable
       if(brainPlaced&&brainAnchor){
         const refSpace=renderer.xr.getReferenceSpace();
-        try{
-          const anchorPose=frame.getPose(brainAnchor.anchorSpace,refSpace);
-          if(anchorPose){
-            const m=new THREE.Matrix4().fromArray(anchorPose.transform.matrix);
-            brainGroup.position.setFromMatrixPosition(m);
-          }
-        }catch(e){}
+        try{const ap=frame.getPose(brainAnchor.anchorSpace,refSpace);if(ap){const m=new THREE.Matrix4().fromArray(ap.transform.matrix);brainGroup.position.setFromMatrixPosition(m);}}catch(e){}
       }
     }
     pt.position.set(Math.sin(Date.now()*.0005)*2,1.5,Math.cos(Date.now()*.0004)*2);
@@ -327,16 +350,13 @@ async function onXrTap(){
   const finalPos=new THREE.Vector3();
   if(reticle.visible){
     finalPos.setFromMatrixPosition(reticle.matrix);
-    // Crear anchor para que ARCore mantenga la posición estable
-    if(lastHitResult&&lastHitResult.createAnchor){
-      try{ brainAnchor=await lastHitResult.createAnchor(); }catch(e){ brainAnchor=null; }
-    }
+    if(lastHitResult&&lastHitResult.createAnchor){try{brainAnchor=await lastHitResult.createAnchor();}catch(e){brainAnchor=null;}}
   }else{
     finalPos.copy(_camPos).addScaledVector(_camDir,1.5);
     finalPos.y=_camPos.y-0.3;
   }
-  brainGroup.rotation.set(0,0,0); rotX=0; rotY=0;
-  reticle.visible=false; brainPlaced=true;
+  brainGroup.rotation.set(0,0,0);rotX=0;rotY=0;
+  reticle.visible=false;brainPlaced=true;
   if(hitTestSource){hitTestSource.cancel&&hitTestSource.cancel();hitTestSource=null;}
   setMsg('ARRASTRA · PELLIZCA PARA ZOOM · TOCA UNA REGION','found');
   updateCounter();
@@ -353,12 +373,12 @@ async function startFallback(){
   camera.position.set(0,0,3);
   brainGroup.position.set(0,0,0);
   brainGroup.scale.setScalar(0.55);
-  brainGroup.rotation.set(0,0,0); rotX=0; rotY=0; brainPlaced=true;
+  brainGroup.rotation.set(0,0,0);rotX=0;rotY=0;brainPlaced=true;
   setMsg('ARRASTRA · PELLIZCA PARA ZOOM · TOCA UNA REGION','found');
   updateCounter();
   buildReveal(new THREE.Vector3(0,0,0));
   let t=0;
-  renderer.setAnimationLoop(()=>{ t+=0.016; pt.position.set(Math.sin(t*.5)*3,2,Math.cos(t*.4)*3); renderer.render(scene,camera); });
+  renderer.setAnimationLoop(()=>{t+=0.016;pt.position.set(Math.sin(t*.5)*3,2,Math.cos(t*.4)*3);renderer.render(scene,camera);});
 }
 
 function setMsg(t,c=''){const e=document.getElementById('msg');e.textContent=t;e.className=c;}
