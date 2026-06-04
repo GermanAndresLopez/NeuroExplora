@@ -118,15 +118,6 @@ brainGroup.position.set(0,0,0);
 brainGroup.visible=false;
 scene.add(brainGroup);
 
-// Reticula WebXR: anillo que se pega a superficies reales
-const reticle=new THREE.Mesh(
-  new THREE.RingGeometry(0.08,0.11,32).rotateX(-Math.PI/2),
-  new THREE.MeshBasicMaterial({color:0xe56c78,side:THREE.DoubleSide})
-);
-reticle.matrixAutoUpdate=false;
-reticle.visible=false;
-scene.add(reticle);
-
 const regionMeshes=[];
 REGION_B64.forEach((b64,i)=>{
   const geo=new THREE.BufferGeometry();
@@ -203,18 +194,12 @@ function buildReveal(){
 //
 // El arrastre manual añade un offset encima del world-lock.
 //
-// ── Estado WebXR ──────────────────────────────────────
-let xrMode=false, hitTestSource=null, xrRefSpace=null;
-
-// ── Estado giroscopio (fallback) ──────────────────────
-const deviceQuat    = new THREE.Quaternion();
-const manualQuat    = new THREE.Quaternion();
-const currentQuat   = new THREE.Quaternion();
-const initialBrainQ = new THREE.Quaternion(); // orientación del cerebro al colocar
-const _brainTarget  = new THREE.Quaternion();
-const _camQuat      = new THREE.Quaternion();
-const _euler        = new THREE.Euler();
-const _screenCorr   = new THREE.Quaternion(-Math.sqrt(0.5),0,0,Math.sqrt(0.5));
+const deviceQuat = new THREE.Quaternion();
+const manualQuat = new THREE.Quaternion();
+const currentQuat= new THREE.Quaternion();
+const _camQuat   = new THREE.Quaternion();
+const _euler     = new THREE.Euler();
+const _screenCorr= new THREE.Quaternion(-Math.sqrt(0.5),0,0,Math.sqrt(0.5));
 let hasGyro = false;
 
 function onOrientation(e){
@@ -240,7 +225,6 @@ function requestGyro(){
 }
 
 // ── Colocar cerebro en posición del toque ────────────
-// Coloca el cerebro en el tap (modo fallback, sin WebXR)
 const _pr=new THREE.Raycaster(), _pv=new THREE.Vector2();
 function placeBrainAtTap(sx,sy){
   camera.quaternion.copy(hasGyro ? deviceQuat : new THREE.Quaternion());
@@ -249,21 +233,8 @@ function placeBrainAtTap(sx,sy){
   const pos=new THREE.Vector3();
   _pr.ray.at(3,pos);
   brainGroup.position.copy(pos);
-  initialBrainQ.identity();
   manualQuat.identity();
   currentQuat.identity();
-}
-
-// Coloca el cerebro desde la reticula WebXR
-function placeBrainFromReticle(){
-  const pos=new THREE.Vector3();
-  pos.setFromMatrixPosition(reticle.matrix);
-  brainGroup.position.copy(pos);
-  initialBrainQ.setFromRotationMatrix(reticle.matrix);
-  manualQuat.identity();
-  currentQuat.copy(initialBrainQ);
-  brainGroup.quaternion.copy(initialBrainQ);
-  reticle.visible=false;
 }
 
 // ── Touch / Mouse ─────────────────────────────────────
@@ -303,7 +274,7 @@ renderer.domElement.addEventListener('touchend',e=>{
       isDragging=false;
       const cx=e.changedTouches[0].clientX,cy=e.changedTouches[0].clientY;
       const wasTap=Math.abs(cx-touchStart.x)<10&&Math.abs(cy-touchStart.y)<10;
-      if(wasTap&&!xrMode){ // en WebXR los taps los maneja session.select
+      if(wasTap){
         if(!brainPlaced){
           brainPlaced=true;
           placeBrainAtTap(cx,cy);
@@ -353,84 +324,19 @@ function doRaycast(x,y){
   if(hits.length>0&&hits[0].object.userData.ri!==undefined)selectRegion(hits[0].object.userData.ri);
 }
 
-// ── WebXR: selectstart = tap en modo AR ───────────────
-function onXRSelect(event){
-  const src=event.inputSource;
-  if(!brainPlaced){
-    if(reticle.visible){ brainPlaced=true; placeBrainFromReticle(); buildReveal(); setMsg('TOCA UNA REGION PARA VER INFO','found'); updateCounter(); }
-    return;
-  }
-  // Raycast con el rayo XR para detectar regiones
-  if(!src||!event.frame)return;
-  const pose=event.frame.getPose(src.targetRaySpace,xrRefSpace);
-  if(!pose)return;
-  const p=pose.transform.position, o=pose.transform.orientation;
-  const dir=new THREE.Vector3(0,0,-1).applyQuaternion(new THREE.Quaternion(o.x,o.y,o.z,o.w));
-  const ray=new THREE.Raycaster(new THREE.Vector3(p.x,p.y,p.z),dir.normalize());
-  if(document.getElementById('complete-modal').classList.contains('show'))return;
-  if(document.getElementById('panel').classList.contains('open')){deselectAll();return;}
-  const hits=ray.intersectObjects(regionMeshes.filter(m=>m.visible),false);
-  if(hits.length>0&&hits[0].object.userData.ri!==undefined)selectRegion(hits[0].object.userData.ri);
-}
-
-// ── WebXR: iniciar sesión AR con hit-test ─────────────
-async function startWebXR(){
-  if(!navigator.xr)return false;
-  let ok=false;
-  try{ok=await navigator.xr.isSessionSupported('immersive-ar');}catch(e){}
-  if(!ok)return false;
-  try{
-    renderer.xr.enabled=true; // solo se activa si el dispositivo soporta WebXR
-    renderer.xr.setReferenceSpaceType('local');
-    const session=await navigator.xr.requestSession('immersive-ar',{
-      requiredFeatures:['hit-test'],
-      optionalFeatures:['dom-overlay'],
-      domOverlay:{root:document.getElementById('hud')}
-    });
-    await renderer.xr.setSession(session);
-    xrRefSpace=await session.requestReferenceSpace('local');
-    const viewerSpace=await session.requestReferenceSpace('viewer');
-    hitTestSource=await session.requestHitTestSource({space:viewerSpace});
-    session.addEventListener('end',()=>{
-      try{hitTestSource.cancel();}catch(e){}
-      hitTestSource=null; xrRefSpace=null; xrMode=false;
-      renderer.xr.enabled=false;
-    });
-    session.addEventListener('selectstart',onXRSelect);
-    // Escala métrica para WebXR (unidades = metros)
-    brainGroup.scale.setScalar(0.15);
-    document.getElementById('video-bg').style.display='none';
-    renderer.setClearColor(0,0);
-    xrMode=true;
-    return true;
-  }catch(e){console.warn('WebXR no disponible:',e);renderer.xr.enabled=false;return false;}
-}
-
 // ── Render loop ───────────────────────────────────────
 let t=0;
-renderer.setAnimationLoop((time,frame)=>{
+renderer.setAnimationLoop(()=>{
   t+=0.016;
   pt.position.set(Math.sin(t*.5)*3,2,Math.cos(t*.4)*3);
 
-  // ── WebXR: hit-test para la retícula ─────────────────
-  if(xrMode&&frame&&hitTestSource&&xrRefSpace){
-    const hits=frame.getHitTestResults(hitTestSource);
-    if(hits.length>0){
-      const pose=hits[0].getPose(xrRefSpace);
-      if(pose){reticle.visible=!brainPlaced; reticle.matrix.fromArray(pose.transform.matrix);}
-    }else{reticle.visible=false;}
-  }
-
-  // ── Fallback (sin WebXR): cámara sigue el giroscopio ─
-  if(!xrMode&&hasGyro){
-    _camQuat.slerp(deviceQuat,0.18);
+  if(hasGyro){
+    _camQuat.slerp(deviceQuat,0.15);
     camera.quaternion.copy(_camQuat);
   }
 
-  // ── Rotación manual del cerebro (ambos modos) ────────
   if(brainPlaced){
-    _brainTarget.multiplyQuaternions(initialBrainQ,manualQuat);
-    currentQuat.slerp(_brainTarget,0.12);
+    currentQuat.slerp(manualQuat,0.12);
     brainGroup.quaternion.copy(currentQuat);
   }
 
@@ -440,23 +346,12 @@ renderer.setAnimationLoop((time,frame)=>{
 // ── Inicio ────────────────────────────────────────────
 async function startAR(){
   document.getElementById('start-overlay').classList.add('hidden');
-
-  // ── Intentar WebXR AR (ARCore/ARKit) ──────────────────
-  const webxrOK=await startWebXR();
-  if(webxrOK){
-    setMsg('APUNTA A UNA SUPERFICIE · TOCA PARA COLOCAR EL CEREBRO');
-    updateCounter();
-    return;
-  }
-
-  // ── Fallback: cámara + giroscopio ────────────────────
   requestGyro();
   const video=document.getElementById('video-bg');
   try{
     const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}});
     video.srcObject=stream; await video.play();
   }catch(e){setMsg('SIN ACCESO A CAMARA','');return;}
-  camera.position.set(0,0,0);
   setMsg('TOCA LA PANTALLA PARA COLOCAR EL CEREBRO');
   updateCounter();
 }
