@@ -95,7 +95,6 @@ const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
 renderer.setClearColor(0x000000, 0.35);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
-renderer.xr.enabled = true; // habilitar WebXR (hit-test AR)
 document.body.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -381,6 +380,7 @@ async function startWebXR(){
   try{ok=await navigator.xr.isSessionSupported('immersive-ar');}catch(e){}
   if(!ok)return false;
   try{
+    renderer.xr.enabled=true; // solo se activa si el dispositivo soporta WebXR
     renderer.xr.setReferenceSpaceType('local');
     const session=await navigator.xr.requestSession('immersive-ar',{
       requiredFeatures:['hit-test'],
