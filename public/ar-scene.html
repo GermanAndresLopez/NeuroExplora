@@ -370,9 +370,16 @@ renderer.setAnimationLoop(arLoop);
 // ── WebXR: tap en AR → colocar cerebro o seleccionar región ──────────
 function onXRSelect(event){
   if(!brainPlaced){
-    if(!reticle.visible)return;
     brainPlaced=true;
-    brainGroup.position.setFromMatrixPosition(reticle.matrix);
+    if(reticle.visible){
+      // Colocar en la superficie detectada por hit-test
+      brainGroup.position.setFromMatrixPosition(reticle.matrix);
+    }else{
+      // No hay superficie detectada aún: colocar 1.5m frente a la cámara XR
+      const cam=renderer.xr.getCamera(camera);
+      const fwd=new THREE.Vector3(0,0,-1.5).applyMatrix4(cam.matrixWorld);
+      brainGroup.position.copy(fwd);
+    }
     reticle.visible=false;
     buildReveal();
     setMsg('TOCA UNA REGION PARA VER INFO','found');
