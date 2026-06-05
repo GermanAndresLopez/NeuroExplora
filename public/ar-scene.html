@@ -286,14 +286,16 @@ renderer.domElement.addEventListener('touchend',e=>{
       isDragging=false;
       const cx=e.changedTouches[0].clientX,cy=e.changedTouches[0].clientY;
       const wasTap=Math.abs(cx-touchStart.x)<10&&Math.abs(cy-touchStart.y)<10;
-      if(wasTap&&!xrMode){
-        if(!brainPlaced){
+      if(wasTap){
+        if(!brainPlaced&&!xrMode){
+          // Colocar cerebro (modo fallback — WebXR lo maneja con onXRSelect)
           brainPlaced=true;
           placeBrainAtTap(cx,cy);
           buildReveal();
           setMsg('GIRA EL CELULAR O ARRASTRA PARA ORBITAR · TOCA UNA REGION','found');
           updateCounter();
-        } else {
+        }else if(brainPlaced){
+          // Selección de zonas: funciona en ambos modos
           doRaycast(cx,cy);
         }
       }
@@ -313,8 +315,8 @@ window.addEventListener('mousemove',e=>{
 window.addEventListener('mouseup',e=>{
   if(isDragging){isDragging=false;
     if(Math.abs(e.clientX-touchStart.x)<5&&Math.abs(e.clientY-touchStart.y)<5){
-      if(!brainPlaced){brainPlaced=true;placeBrainAtTap(e.clientX,e.clientY);buildReveal();setMsg('GIRA EL CELULAR O ARRASTRA PARA ORBITAR · TOCA UNA REGION','found');updateCounter();}
-      else doRaycast(e.clientX,e.clientY);
+      if(!brainPlaced&&!xrMode){brainPlaced=true;placeBrainAtTap(e.clientX,e.clientY);buildReveal();setMsg('GIRA EL CELULAR O ARRASTRA PARA ORBITAR · TOCA UNA REGION','found');updateCounter();}
+      else if(brainPlaced)doRaycast(e.clientX,e.clientY);
     }
   }
 });
@@ -368,32 +370,19 @@ renderer.setAnimationLoop(arLoop);
 
 // ── WebXR: tap para colocar cerebro o seleccionar región ────────────
 function onXRSelect(event){
-  if(!brainPlaced){
-    brainPlaced=true;
-    if(reticle.visible){
-      brainGroup.position.setFromMatrixPosition(reticle.matrix);
-    }else{
-      // Sin superficie detectada: 1.5m frente a la cámara actual
-      const fwd=new THREE.Vector3(0,0,-1.5).applyQuaternion(camera.quaternion);
-      brainGroup.position.copy(camera.position).add(fwd);
-    }
-    reticle.visible=false;
-    buildReveal();
-    setMsg('TOCA UNA REGION PARA VER INFO','found');
-    updateCounter();
+  // Solo maneja la colocación inicial; las zonas las gestiona touchend con doRaycast
+  if(brainPlaced)return;
+  brainPlaced=true;
+  if(reticle.visible){
+    brainGroup.position.setFromMatrixPosition(reticle.matrix);
   }else{
-    const src=event.inputSource;
-    if(!src||!event.frame)return;
-    const pose=event.frame.getPose(src.targetRaySpace,_xrRefSpace);
-    if(!pose)return;
-    const p=pose.transform.position,o=pose.transform.orientation;
-    const dir=new THREE.Vector3(0,0,-1).applyQuaternion(new THREE.Quaternion(o.x,o.y,o.z,o.w));
-    const ray=new THREE.Raycaster(new THREE.Vector3(p.x,p.y,p.z),dir.normalize());
-    if(document.getElementById('complete-modal').classList.contains('show'))return;
-    if(document.getElementById('panel').classList.contains('open')){deselectAll();return;}
-    const hits=ray.intersectObjects(regionMeshes.filter(m=>m.visible),false);
-    if(hits.length>0&&hits[0].object.userData.ri!==undefined)selectRegion(hits[0].object.userData.ri);
+    const fwd=new THREE.Vector3(0,0,-1.5).applyQuaternion(camera.quaternion);
+    brainGroup.position.copy(camera.position).add(fwd);
   }
+  reticle.visible=false;
+  buildReveal();
+  setMsg('TOCA UNA REGION PARA VER INFO','found');
+  updateCounter();
 }
 
 // ── WebXR: iniciar sesión AR con hit-test ────────────────────────────
