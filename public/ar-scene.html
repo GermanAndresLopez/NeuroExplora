@@ -394,7 +394,7 @@ async function startWebXR(){
     const session=await navigator.xr.requestSession('immersive-ar',{
       requiredFeatures:['hit-test'],
       optionalFeatures:['dom-overlay'],
-      domOverlay:{root:document.getElementById('hud')}
+      domOverlay:{root:document.body}
     });
     // Solo habilitamos XR una vez que la sesión está garantizada
     renderer.xr.enabled=true;

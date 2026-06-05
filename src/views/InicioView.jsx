@@ -615,6 +615,15 @@ function ExperienceSelector({ onPick3D, onPickAR, onCancel }) {
         </div>
 
         <ExperienceCard
+          onClick={onPick3D}
+          label="EXPERIENCIA 3D"
+          desc="Explora el modelo cerebral, toca las 6 regiones para conocerlas y luego responde el cuestionario."
+          badge="TODOS LOS DISPOSITIVOS"
+          icon="🧠"
+          primary
+        />
+
+        <ExperienceCard
           onClick={onPickAR}
           label="EXPERIENCIA AR"
           desc={
@@ -622,17 +631,8 @@ function ExperienceSelector({ onPick3D, onPickAR, onCancel }) {
               ? 'Coloca el cerebro en el mundo real. Apunta a una superficie lisa, toca para colocarlo y rodéalo caminando.'
               : 'Disponible en móviles Android con ARCore. Coloca el cerebro en el mundo real.'
           }
-          badge={IS_MOBILE ? 'RECOMENDADO' : 'SOLO MÓVIL'}
+          badge={IS_MOBILE ? 'MÓVIL' : 'SOLO MÓVIL'}
           icon="📷"
-          primary
-        />
-
-        <ExperienceCard
-          onClick={onPick3D}
-          label="EXPERIENCIA 3D"
-          desc="Explora el modelo cerebral, toca las 6 regiones para conocerlas y luego responde el cuestionario."
-          badge="TODOS LOS DISPOSITIVOS"
-          icon="🧠"
         />
 
         <button
