@@ -89,7 +89,7 @@ function BrainIcon({ name, size = 38, color = 'currentColor' }) {
   }
 }
 
-export default function MemoryGame({ onScore }) {
+export default function MemoryGame({ onScore, onHome }) {
   const [phase, setPhase]               = useState('idle')
   const [cards, setCards]               = useState([])
   const [flipped, setFlipped]           = useState([])
@@ -216,19 +216,35 @@ export default function MemoryGame({ onScore }) {
           <StatCard label="TIEMPO"   value={formatTime(elapsed)} />
           <StatCard label="PUNTAJE"  value={score} accent />
         </div>
-        <button
-          onClick={startGame}
-          className="pixel-btn"
-          style={{
-            width: '100%', maxWidth: '280px', padding: '12px',
-            fontSize: '0.6rem',
-            background: 'var(--accent)', color: '#050508',
-            border: '2px solid var(--accent)',
-            boxShadow: '4px 4px 0 var(--accent-border)',
-          }}
-        >
-          &gt; DE NUEVO
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '280px' }}>
+          <button
+            onClick={startGame}
+            className="pixel-btn"
+            style={{
+              width: '100%', padding: '12px',
+              fontSize: '0.6rem',
+              background: 'var(--accent)', color: '#050508',
+              border: '2px solid var(--accent)',
+              boxShadow: '4px 4px 0 var(--accent-border)',
+            }}
+          >
+            &gt; JUGAR DE NUEVO
+          </button>
+          {onHome && (
+            <button
+              onClick={onHome}
+              className="pixel-btn"
+              style={{
+                width: '100%', padding: '12px',
+                fontSize: '0.6rem',
+                background: 'transparent', color: 'var(--accent)',
+                border: '1px solid var(--accent-border)',
+              }}
+            >
+              ← VOLVER AL INICIO
+            </button>
+          )}
+        </div>
       </div>
     )
   }

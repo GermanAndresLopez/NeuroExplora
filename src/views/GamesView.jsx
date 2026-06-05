@@ -42,7 +42,7 @@ export default function GamesView({ tab, onTabChange, onScore, onHome }) {
 
       {/* Content */}
       <div className="flex-1 min-h-0 overflow-auto">
-        {tab === 'memory' && <MemoryGame onScore={onScore} />}
+        {tab === 'memory' && <MemoryGame onScore={onScore} onHome={onHome} />}
         {tab === 'quiz'   && <QuizGame onScore={onScore} />}
       </div>
     </div>
