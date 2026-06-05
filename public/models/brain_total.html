@@ -169,7 +169,7 @@ REGION_B64.forEach((b64,i)=>{
   const mat=new THREE.MeshPhongMaterial({
     color:BASE_HEX[i], flatShading:true,
     shininess:80, specular:new THREE.Color(ACTIVE_HEX[i]).multiplyScalar(0.1),
-    transparent:true, opacity:0.25
+    transparent:true, opacity:0
   });
   const mesh=new THREE.Mesh(geo,mat);
   brainGroup.add(mesh);
@@ -231,7 +231,7 @@ function selectRegion(i){
       m.material.color.setHex(BASE_HEX[j]);
       m.material.emissive.setHex(0x000000);
       m.material.emissiveIntensity=0;
-      m.material.opacity=0.45;
+      m.material.opacity=0;
     }
   });
   markerEls.forEach((el,j)=>{
@@ -270,7 +270,7 @@ function deselectAll(){
       m.material.color.setHex(BASE_HEX[i]);
       m.material.emissive.setHex(0x000000);
       m.material.emissiveIntensity=0;
-      m.material.opacity=0.25;
+      m.material.opacity=0;
     }
   });
   markerEls.forEach((el,i)=>{
@@ -421,9 +421,10 @@ app.addEventListener('mousemove',e=>{
   if(newHover!==hoveredRegion){
     // restore old hovered (if not active)
     if(hoveredRegion>=0&&hoveredRegion!==activeRegion){
-      regionMeshes[hoveredRegion].material.color.setHex(activeRegion>=0?BASE_HEX[hoveredRegion]:BASE_HEX[hoveredRegion]);
+      regionMeshes[hoveredRegion].material.color.setHex(seenRegions.has(hoveredRegion)?SEEN_HEX[hoveredRegion]:BASE_HEX[hoveredRegion]);
       regionMeshes[hoveredRegion].material.emissive.setHex(0x000000);
       regionMeshes[hoveredRegion].material.emissiveIntensity=0;
+      regionMeshes[hoveredRegion].material.opacity=seenRegions.has(hoveredRegion)?0.75:0;
     }
     hoveredRegion=newHover;
     // highlight new hovered (if not active)
@@ -431,6 +432,7 @@ app.addEventListener('mousemove',e=>{
       regionMeshes[hoveredRegion].material.color.setHex(HOVER_HEX[hoveredRegion]);
       regionMeshes[hoveredRegion].material.emissive.setHex(ACTIVE_HEX[hoveredRegion]);
       regionMeshes[hoveredRegion].material.emissiveIntensity=0.18;
+      regionMeshes[hoveredRegion].material.opacity=0.4;
     }
   }
   canvas.style.cursor=newHover>=0?'pointer':'grab';
