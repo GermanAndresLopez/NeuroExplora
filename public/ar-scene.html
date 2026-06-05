@@ -118,6 +118,15 @@ brainGroup.position.set(0,0,0);
 brainGroup.visible=false;
 scene.add(brainGroup);
 
+// Retícula: anillo que indica dónde colocar en la superficie real (WebXR)
+const reticle=new THREE.Mesh(
+  new THREE.RingGeometry(0.08,0.12,32).rotateX(-Math.PI/2),
+  new THREE.MeshBasicMaterial({color:0xe56c78,side:THREE.DoubleSide})
+);
+reticle.matrixAutoUpdate=false;
+reticle.visible=false;
+scene.add(reticle);
+
 const regionMeshes=[];
 REGION_B64.forEach((b64,i)=>{
   const geo=new THREE.BufferGeometry();
@@ -194,6 +203,10 @@ function buildReveal(){
 //
 // El arrastre manual añade un offset encima del world-lock.
 //
+// Estado WebXR
+let xrMode=false, _hitTestSrc=null, _xrRefSpace=null;
+
+// Estado giroscopio / rotación
 const deviceQuat = new THREE.Quaternion();
 const manualQuat = new THREE.Quaternion();
 const currentQuat= new THREE.Quaternion();
@@ -274,7 +287,7 @@ renderer.domElement.addEventListener('touchend',e=>{
       isDragging=false;
       const cx=e.changedTouches[0].clientX,cy=e.changedTouches[0].clientY;
       const wasTap=Math.abs(cx-touchStart.x)<10&&Math.abs(cy-touchStart.y)<10;
-      if(wasTap){
+      if(wasTap&&!xrMode){
         if(!brainPlaced){
           brainPlaced=true;
           placeBrainAtTap(cx,cy);
@@ -324,13 +337,23 @@ function doRaycast(x,y){
   if(hits.length>0&&hits[0].object.userData.ri!==undefined)selectRegion(hits[0].object.userData.ri);
 }
 
-// ── Render loop ───────────────────────────────────────
+// ── Render loop (función nombrada para poder re-registrar en WebXR) ──
 let t=0;
-renderer.setAnimationLoop(()=>{
+function arLoop(time,frame){
   t+=0.016;
   pt.position.set(Math.sin(t*.5)*3,2,Math.cos(t*.4)*3);
 
-  if(hasGyro){
+  // WebXR: actualizar retícula con hit-test
+  if(frame&&_hitTestSrc&&_xrRefSpace){
+    const hits=frame.getHitTestResults(_hitTestSrc);
+    if(hits.length>0){
+      const pose=hits[0].getPose(_xrRefSpace);
+      if(pose){reticle.visible=!brainPlaced;reticle.matrix.fromArray(pose.transform.matrix);}
+    }else{reticle.visible=false;}
+  }
+
+  // Fallback: cámara sigue giroscopio
+  if(!xrMode&&hasGyro){
     _camQuat.slerp(deviceQuat,0.15);
     camera.quaternion.copy(_camQuat);
   }
@@ -341,11 +364,84 @@ renderer.setAnimationLoop(()=>{
   }
 
   renderer.render(scene,camera);
-});
+}
+renderer.setAnimationLoop(arLoop);
+
+// ── WebXR: tap en AR → colocar cerebro o seleccionar región ──────────
+function onXRSelect(event){
+  if(!brainPlaced){
+    if(!reticle.visible)return;
+    brainPlaced=true;
+    brainGroup.position.setFromMatrixPosition(reticle.matrix);
+    reticle.visible=false;
+    buildReveal();
+    setMsg('TOCA UNA REGION PARA VER INFO','found');
+    updateCounter();
+  }else{
+    const src=event.inputSource;
+    if(!src||!event.frame)return;
+    const pose=event.frame.getPose(src.targetRaySpace,_xrRefSpace);
+    if(!pose)return;
+    const p=pose.transform.position,o=pose.transform.orientation;
+    const dir=new THREE.Vector3(0,0,-1).applyQuaternion(new THREE.Quaternion(o.x,o.y,o.z,o.w));
+    const ray=new THREE.Raycaster(new THREE.Vector3(p.x,p.y,p.z),dir.normalize());
+    if(document.getElementById('complete-modal').classList.contains('show'))return;
+    if(document.getElementById('panel').classList.contains('open')){deselectAll();return;}
+    const hits=ray.intersectObjects(regionMeshes.filter(m=>m.visible),false);
+    if(hits.length>0&&hits[0].object.userData.ri!==undefined)selectRegion(hits[0].object.userData.ri);
+  }
+}
+
+// ── WebXR: iniciar sesión AR real con hit-test (ARCore/ARKit) ─────────
+async function startWebXR(){
+  if(!navigator.xr)return false;
+  try{const ok=await navigator.xr.isSessionSupported('immersive-ar');if(!ok)return false;}catch(e){return false;}
+  try{
+    renderer.xr.enabled=true;
+    renderer.xr.setReferenceSpaceType('local');
+    const session=await navigator.xr.requestSession('immersive-ar',{
+      requiredFeatures:['hit-test'],
+      optionalFeatures:['dom-overlay'],
+      domOverlay:{root:document.getElementById('hud')}
+    });
+    await renderer.xr.setSession(session);
+    // CRÍTICO: re-registrar el loop DESPUÉS de setSession para que XR lo use
+    renderer.setAnimationLoop(arLoop);
+    _xrRefSpace=await session.requestReferenceSpace('local');
+    const vs=await session.requestReferenceSpace('viewer');
+    _hitTestSrc=await session.requestHitTestSource({space:vs});
+    session.addEventListener('selectstart',onXRSelect);
+    session.addEventListener('end',()=>{
+      try{_hitTestSrc.cancel();}catch(e){}
+      _hitTestSrc=null;_xrRefSpace=null;xrMode=false;
+      renderer.xr.enabled=false;
+      renderer.setAnimationLoop(arLoop); // restaurar loop normal
+    });
+    brainGroup.scale.setScalar(0.2);
+    document.getElementById('video-bg').style.display='none';
+    renderer.setClearColor(0,0);
+    xrMode=true;
+    return true;
+  }catch(e){
+    console.warn('WebXR no disponible:',e);
+    renderer.xr.enabled=false;
+    renderer.setAnimationLoop(arLoop); // restaurar loop si falla
+    return false;
+  }
+}
 
 // ── Inicio ────────────────────────────────────────────
 async function startAR(){
   document.getElementById('start-overlay').classList.add('hidden');
+
+  const ok=await startWebXR();
+  if(ok){
+    setMsg('APUNTA A UNA SUPERFICIE PLANA Y TOCA PARA COLOCAR EL CEREBRO');
+    updateCounter();
+    return;
+  }
+
+  // Fallback: cámara + giroscopio
   requestGyro();
   const video=document.getElementById('video-bg');
   try{
