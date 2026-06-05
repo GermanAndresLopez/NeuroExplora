@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { REGION_LIST } from '../../data/brainRegions.js'
-import { playClick, playMatch, playMiss, playSuccess } from '../../hooks/useSound.js'
+import { playClick, playMatch, playMiss, playSuccess, playSelect, playBack } from '../../hooks/useSound.js'
+import { submitScore, getLeaderboard } from '../../lib/leaderboard.js'
 
 const REGION_NAMES = REGION_LIST.map(r => r.name)
 
@@ -99,6 +100,13 @@ export default function MemoryGame({ onScore, onHome }) {
   const timerRef                        = useRef(null)
   const checkingRef                     = useRef(false)
 
+  // Leaderboard
+  const [lbPhase, setLbPhase] = useState('input')
+  const [lbName,  setLbName]  = useState(() => localStorage.getItem('ne_lb_name') || '')
+  const [board,   setBoard]   = useState([])
+  const [myEntry, setMyEntry] = useState(null)
+  const inputRef              = useRef(null)
+
   const startGame = useCallback(() => {
     setCards(generateCards())
     setFlipped([])
@@ -106,8 +114,23 @@ export default function MemoryGame({ onScore, onHome }) {
     setMatchedCount(0)
     setElapsed(0)
     setPhase('playing')
+    setLbPhase('input')
+    setBoard([])
+    setMyEntry(null)
     checkingRef.current = false
   }, [])
+
+  async function handleSaveScore(finalScore) {
+    const name = lbName.trim() || 'ANÓNIMO'
+    localStorage.setItem('ne_lb_name', name)
+    setLbPhase('saving')
+    const entry = { name, score: finalScore, total: 600, date: Date.now() }
+    setMyEntry(entry)
+    await submitScore(entry)
+    const data = await getLeaderboard()
+    setBoard(data)
+    setLbPhase('board')
+  }
 
   useEffect(() => {
     if (phase === 'playing') {
@@ -202,45 +225,119 @@ export default function MemoryGame({ onScore, onHome }) {
   }
 
   if (phase === 'won') {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '24px', gap: '20px' }}>
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: '0.5rem', color: 'var(--accent)', letterSpacing: '0.2em', marginBottom: '8px' }}>// COMPLETADO</p>
-          <h2 style={{ fontSize: '0.8rem', color: '#fff', letterSpacing: '0.1em', marginBottom: '4px' }}>VICTORIA</h2>
-          <p style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontFamily: "'Courier New', monospace" }}>
-            Todos los pares encontrados
+    // ── Ingresar nombre ──────────────────────────────────────────────────
+    if (lbPhase === 'input') {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '24px', gap: '18px' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '1.5rem', marginBottom: '8px', letterSpacing: '0.15em' }}>★★★</div>
+            <p style={{ fontSize: '0.55rem', color: 'var(--accent)', letterSpacing: '0.15em', marginBottom: '6px' }}>// COMPLETADO</p>
+            <p style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontFamily: "'Courier New', monospace", lineHeight: 1.8 }}>
+              TODOS LOS PARES ENCONTRADOS
+            </p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', width: '100%', maxWidth: '280px' }}>
+            <StatCard label="INTENTOS" value={attempts} />
+            <StatCard label="TIEMPO"   value={formatTime(elapsed)} />
+            <StatCard label="PUNTAJE"  value={score} accent />
+          </div>
+          <div style={{ width: '100%', maxWidth: '280px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <p style={{ fontSize: '0.55rem', color: 'var(--text-dim)', letterSpacing: '0.1em' }}>INGRESA TU NOMBRE:</p>
+            <input
+              ref={inputRef}
+              type="text"
+              maxLength={20}
+              value={lbName}
+              onChange={e => setLbName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && lbName.trim()) { playSelect(); handleSaveScore(score) } }}
+              placeholder="NOMBRE..."
+              style={{
+                background: 'var(--surface)', border: '1px solid var(--accent-border)',
+                color: '#fff', fontSize: '0.75rem', padding: '12px 14px',
+                fontFamily: "'Press Start 2P', monospace", letterSpacing: '0.08em',
+                outline: 'none', width: '100%',
+              }}
+            />
+            <button
+              onClick={() => { if (lbName.trim()) { playSelect(); handleSaveScore(score) } }}
+              className="pixel-btn"
+              style={{
+                padding: '13px', fontSize: '0.75rem',
+                background: lbName.trim() ? 'var(--accent)' : 'rgba(229,108,120,0.2)',
+                color: '#050508', border: '2px solid var(--accent)',
+                boxShadow: '3px 3px 0 var(--accent-border)',
+                cursor: lbName.trim() ? 'pointer' : 'not-allowed',
+              }}
+            >
+              &gt; GUARDAR Y VER RANKING
+            </button>
+          </div>
+          <button onClick={startGame} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: '0.55rem', fontFamily: "'Press Start 2P', monospace" }}>
+            × OMITIR
+          </button>
+        </div>
+      )
+    }
+
+    // ── Guardando ────────────────────────────────────────────────────────
+    if (lbPhase === 'saving') {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+          <p style={{ fontSize: '0.65rem', color: 'var(--accent)', fontFamily: "'Courier New', monospace", letterSpacing: '0.1em' }}>
+            GUARDANDO...
           </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', width: '100%', maxWidth: '280px' }}>
-          <StatCard label="INTENTOS" value={attempts} />
-          <StatCard label="TIEMPO"   value={formatTime(elapsed)} />
-          <StatCard label="PUNTAJE"  value={score} accent />
+      )
+    }
+
+    // ── Ranking ──────────────────────────────────────────────────────────
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '16px' }}>
+        <div style={{ marginBottom: '14px', flexShrink: 0 }}>
+          <p style={{ fontSize: '0.55rem', color: 'var(--accent)', letterSpacing: '0.2em', opacity: 0.75, marginBottom: 4 }}>
+            // CLASIFICACIÓN GLOBAL
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <h2 style={{ fontSize: '0.85rem', color: '#fff', letterSpacing: '0.1em' }}>RANKING</h2>
+            <span style={{ fontSize: '0.6rem', color: 'var(--accent)', fontFamily: "'Courier New', monospace" }}>
+              TU PUNTAJE: {myEntry?.score}
+            </span>
+          </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', maxWidth: '280px' }}>
-          <button
-            onClick={startGame}
-            className="pixel-btn"
-            style={{
-              width: '100%', padding: '12px',
-              fontSize: '0.6rem',
-              background: 'var(--accent)', color: '#050508',
-              border: '2px solid var(--accent)',
-              boxShadow: '4px 4px 0 var(--accent-border)',
-            }}
-          >
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+          {board.length === 0 ? (
+            <p style={{ fontSize: '0.6rem', color: 'var(--text-dim)', fontFamily: "'Courier New', monospace", textAlign: 'center', padding: '20px 0' }}>
+              Sin datos aún.
+            </p>
+          ) : board.map((entry, i) => {
+            const isMe = myEntry && entry.name === myEntry.name && entry.score === myEntry.score && Math.abs(entry.date - myEntry.date) < 5000
+            return (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 12px',
+                background: isMe ? 'var(--accent-dim)' : 'var(--surface)',
+                border: `1px solid ${isMe ? 'var(--accent)' : 'rgba(229,108,120,0.12)'}`,
+                boxShadow: isMe ? '0 0 8px var(--accent-glow)' : 'none',
+              }}>
+                <span style={{ fontSize: '0.6rem', color: i < 3 ? 'var(--accent)' : 'var(--text-dim)', width: 22, textAlign: 'right', fontFamily: "'Courier New', monospace", flexShrink: 0 }}>
+                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`}
+                </span>
+                <span style={{ flex: 1, fontSize: '0.65rem', color: isMe ? 'var(--accent)' : '#fff', letterSpacing: '0.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {entry.name}
+                </span>
+                <span style={{ fontSize: '0.7rem', color: isMe ? 'var(--accent)' : '#fff', fontFamily: "'Courier New', monospace", flexShrink: 0, fontWeight: 'bold' }}>
+                  {entry.score}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 }}>
+          <button onClick={() => { playClick(); startGame() }} className="pixel-btn" style={{ padding: '12px', fontSize: '0.65rem', background: 'var(--accent)', color: '#050508', border: '2px solid var(--accent)', boxShadow: '3px 3px 0 var(--accent-border)' }}>
             &gt; JUGAR DE NUEVO
           </button>
           {onHome && (
-            <button
-              onClick={onHome}
-              className="pixel-btn"
-              style={{
-                width: '100%', padding: '12px',
-                fontSize: '0.6rem',
-                background: 'transparent', color: 'var(--accent)',
-                border: '1px solid var(--accent-border)',
-              }}
-            >
+            <button onClick={() => { playBack(); onHome() }} className="pixel-btn" style={{ padding: '11px', fontSize: '0.6rem', background: 'transparent', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>
               ← VOLVER AL INICIO
             </button>
           )}
