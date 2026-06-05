@@ -175,10 +175,10 @@ export default function MemoryGame({ onScore, onHome }) {
         } else {
           playMiss()
           setCards(prev => prev.map((c, i) => i === a || i === b ? { ...c, isFlipped: false } : c))
+          setPhase('playing')
         }
         setFlipped([])
         checkingRef.current = false
-        if (phase !== 'won') setPhase('playing')
       }, 900)
     }
   }
